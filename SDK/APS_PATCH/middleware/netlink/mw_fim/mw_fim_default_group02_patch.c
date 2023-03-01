@@ -98,6 +98,8 @@ const mw_fim_wifi_auto_connect_ap_info_t gMwFimDefaultAutoConnectAPInfo = {
     .ssid = {0},
     .bssid = {0},
     .channel = 0,
+    .psk = {0},
+    .psk_len = 0,
 };
 
 const mw_fim_wifi_auto_connect_cfg_t gMwFimDefaultAutoConnectCfg = {
@@ -160,6 +162,6 @@ C Functions
 void MwFim_Group02_patch( void )
 {
     MwFim_GroupInfoUpdate(0, 2, (T_MwFimFileInfo *)g_taMwFimGroupTable02_patch);
-    MwFim_GroupVersionUpdate(0, 2, MW_FIM_VER02+1);
+    MwFim_GroupVersionUpdate(0, 2, MW_FIM_VER02+2);
 }
 

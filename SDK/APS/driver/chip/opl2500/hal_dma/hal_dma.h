@@ -666,7 +666,7 @@ typedef uint32_t (*T_Hal_Dma_Config_fp)(E_DMA_CHANNEL eChannel, S_DMA_Init_t *pt
 typedef uint32_t (*T_Hal_Dma_Enable_fp)(E_DMA_CHANNEL eChannel);
 typedef uint32_t (*T_Hal_Dma_Abort_fp)(E_DMA_CHANNEL eChannel);
 typedef void (*T_Hal_Dma_IntMask_fp)(E_DMA_CHANNEL eChannel, uint8_t u8Bmp);
-typedef uint32_t (*T_Hal_Dma_IntEn_fp)(uint8_t u8Enable, uint8_t u8Bmp);
+//typedef uint32_t (*T_Hal_Dma_IntEn_fp)(uint8_t u8Enable, uint8_t u8Bmp); //Removed
 typedef uint32_t (*T_Hal_Dma_IntClear_fp)(E_DMA_CHANNEL eChannel, uint8_t u8Bmp);
 typedef uint32_t (*T_Hal_Dma_IntClearAll_fp)(void);
 typedef void (*T_Hal_Dma_CallBackSet_fp)(E_DMA_CHANNEL eChannel, T_Dma_CallBack tFunc);
@@ -686,7 +686,7 @@ extern T_Hal_Dma_Config_fp          Hal_Dma_Config;
 extern T_Hal_Dma_Enable_fp          Hal_Dma_Enable;
 extern T_Hal_Dma_Abort_fp           Hal_Dma_Abort;
 extern T_Hal_Dma_IntMask_fp         Hal_Dma_IntMask;
-extern T_Hal_Dma_IntEn_fp           Hal_Dma_IntEn;
+//extern T_Hal_Dma_IntEn_fp           Hal_Dma_IntEn; //Removed
 extern T_Hal_Dma_IntClear_fp        Hal_Dma_IntClear;
 extern T_Hal_Dma_IntClearAll_fp     Hal_Dma_IntClearAll;
 extern T_Hal_Dma_CallBackSet_fp     Hal_Dma_CallBackSet;
@@ -703,10 +703,11 @@ uint32_t Hal_Dma_Config_impl(E_DMA_CHANNEL eChannel, S_DMA_Init_t *ptInit);
 uint32_t Hal_Dma_Enable_impl(E_DMA_CHANNEL eChannel);
 uint32_t Hal_Dma_Abort_impl(E_DMA_CHANNEL eChannel);
 void Hal_Dma_IntMask_impl(E_DMA_CHANNEL eChannel, uint8_t u8Bmp);
-uint32_t Hal_Dma_IntEn_impl(uint8_t u8Enable, uint8_t u8Bmp);
+//uint32_t Hal_Dma_IntEn_impl(uint8_t u8Enable, uint8_t u8Bmp); //Removed
 uint32_t Hal_Dma_IntClear_impl(E_DMA_CHANNEL eChannel, uint8_t u8Bmp);
 uint32_t Hal_Dma_IntClearAll_impl(void);
 void Hal_Dma_CallBackSet_impl(E_DMA_CHANNEL eChannel, T_Dma_CallBack tFunc);
 uint32_t Hal_Dma_m2mXfer_impl(E_DMA_CHANNEL eChannel, uint32_t u32Src, uint32_t u32Dst, uint32_t u32Size, uint8_t u8PollXferEnd);
 
+#include "hal_dma_patch.h"
 #endif

@@ -49,6 +49,7 @@ typedef struct
 } __PACKED S_WLAN_MHDR_HT_CTRL_HE;
 #define WLAN_MHDR_HT_CTRL_HE_LEN        sizeof(S_WLAN_MHDR_HT_CTRL_HE)
 
+/* Maximal size of an A-MSDU */
 #define WLAN_MPDU_LEN_HT_MAX_3839       3839
 
 

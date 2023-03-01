@@ -38,6 +38,10 @@ Head Block of The File
 #ifndef _SYS_COMMON_PATCH_H_
 #define _SYS_COMMON_PATCH_H_
 
+
+#define REFINE_TX_PROC          //defined: enable tx-one-copy
+#define REFINE_RX_PROC      2   //0:original / 1:simplify-decryption / 2:simplify-decryption + rx-one-copy
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -68,11 +72,18 @@ extern "C" {
     #define APS_HEAP_LENGTH     ((unsigned int)&__heap_size__)
     
     /* APS ZI */
-    extern unsigned int __aps_bss_start__;
-    extern unsigned int __aps_bss_end__;
+    extern unsigned int __aps_bss_start__, __aps_bss_end__;
     #define ZI_REGION_START     (&__aps_bss_start__)
     #define ZI_REGION_LENGTH    ((unsigned int) &__aps_bss_end__ - (unsigned int) &__aps_bss_start__)
-    
+    /* Shm ZI */
+    extern unsigned int __shm_bss_start__, __shm_bss_end__;
+    #define ZI_REGION_SHARERAM_START     (&__shm_bss_start__)
+    #define ZI_REGION_SHARERAM_LENGTH    ((unsigned int) &__shm_bss_end__ - (unsigned int) &__shm_bss_start__)
+    /* part1 RAM */
+    extern unsigned int __part1_bss_start__, __part1_bss_end__;
+    #define ZI_REGION_PART1RAM_START     (&__part1_bss_start__)
+    #define ZI_REGION_PART1RAM_LENGTH    ((unsigned int) &__part1_bss_end__ - (unsigned int) &__part1_bss_start__)
+
     /* XIP region */
     #define XIP_TEXT            __attribute__((section("XIP_REGION.text")))
     #define XIP_RODATA          __attribute__((section("XIP_REGION.rodata")))

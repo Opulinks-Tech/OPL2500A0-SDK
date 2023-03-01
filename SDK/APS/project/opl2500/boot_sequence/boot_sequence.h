@@ -50,4 +50,5 @@ extern T_Boot_MainPatchFp Boot_MainPatch;
 
 #define BOOT_UART_TIMEOUT   1000
 
+#include "boot_sequence_patch.h"
 #endif /* _BOOT_SEQUENCE_H_ */

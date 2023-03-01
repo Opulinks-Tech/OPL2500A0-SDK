@@ -38,7 +38,10 @@ extern "C" {
  *************************************************************************
  */
 
-
+#define XIP_MEM_MASK    0xFFFFFF
+    
+#define FLASH_TO_XIP_ADDR(flash_addr)           (((g_u32FlashBaseAddr + (flash_addr)) & XIP_MEM_MASK) | APS_XIP_MEM_RW_BASE)
+    
 /*
  *************************************************************************
  *                          Typedefs and Structures

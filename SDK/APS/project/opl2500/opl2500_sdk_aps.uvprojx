@@ -15,7 +15,7 @@
         <TargetCommonOption>
           <Device>ARMCM4_FP</Device>
           <Vendor>ARM</Vendor>
-          <PackID>ARM.CMSIS.5.1.1</PackID>
+          <PackID>ARM.CMSIS.5.9.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
           <Cpu>IRAM(0x20000000,0x00020000) IROM(0x00000000,0x00040000) CPUTYPE("Cortex-M4") FPU2 CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -432,6 +432,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_uart\hal_uart_patch.c</FilePath>
             </File>
+            <File>
+              <FileName>hal_dma_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_dma\hal_dma_patch.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -446,6 +451,21 @@
               <FileName>lwip_jmptbl_patch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\APS_PATCH\middleware\third_party\lwip-2.0.3\ports\rom_if\lwip_jmptbl_patch.c</FilePath>
+            </File>
+            <File>
+              <FileName>memp_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\middleware\third_party\lwip-2.0.3\lwip\src\core\memp_patch.c</FilePath>
+            </File>
+            <File>
+              <FileName>wlannetif_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\middleware\third_party\lwip-2.0.3\ports\freertos\netif\wlannetif_patch.c</FilePath>
+            </File>
+            <File>
+              <FileName>pbuf_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\middleware\third_party\lwip-2.0.3\lwip\src\core\pbuf_patch.c</FilePath>
             </File>
           </Files>
         </Group>

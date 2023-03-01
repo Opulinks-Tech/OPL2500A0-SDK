@@ -92,11 +92,12 @@ static int console_init(void)
 
 static void initial_internal_log_level(void)
 {
+/*
     int i;
     for (i=0; i<15; i++) {
         tracer_log_level_set(i, 0);
     }
-    
+*/
     tracer_log_level_set(8, 4);
     
     strncpy(g_ptTracerExtTaskInfo[0].baName, IPERF_CLIENT_TASK_NAME, 
@@ -132,11 +133,11 @@ static void initial_lwip_options(void)
     option.tcp.tcp_tmr_interval      = 250;
     option.tcp.tcp_max_retry_of_sync = 4;
     option.tcp.tcp_max_retry_of_data = 12;
-    option.tcpip.tcpip_mbox_size     = 16;
-    option.tcpip.tcp_recv_mbox_size  = 16;
-    option.tcpip.udp_recv_mbox_size  = 16;
-    option.tcpip.raw_recv_mbox_size  = 16;
-    option.tcpip.accept_mbox_size    = 16;
+    option.tcpip.tcpip_mbox_size     = 32;
+    option.tcpip.tcp_recv_mbox_size  = 32;
+    option.tcpip.udp_recv_mbox_size  = 32;
+    option.tcpip.raw_recv_mbox_size  = 32;
+    option.tcpip.accept_mbox_size    = 32;
     option.retrans.mode              = OPL_LWIP_TCP_COARSE_GRAINED;
 
     opl_lwip_option_set(OPL_LWIP_CUSTOMER, &option);

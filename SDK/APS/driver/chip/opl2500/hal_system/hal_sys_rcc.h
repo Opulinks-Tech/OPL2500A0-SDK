@@ -594,7 +594,7 @@ typedef enum
 /** APS PCLK divier */
 typedef enum 
 {
-    APS_CLK_PCLK_DIV_1                  = ((0 << AOS_APS_CLK_SEL_APS_PCLK_DIV_SEL_Pos) | (1 << AOS_APS_CLK_SEL_APS_PCLK_DIVN_UNGATED_Pos)),
+    APS_CLK_PCLK_DIV_1                  = ((0 << AOS_APS_CLK_SEL_APS_PCLK_DIV_SEL_Pos) | (0 << AOS_APS_CLK_SEL_APS_PCLK_DIVN_UNGATED_Pos)),
     APS_CLK_PCLK_DIV_2                  = ((1 << AOS_APS_CLK_SEL_APS_PCLK_DIV_SEL_Pos) | (1 << AOS_APS_CLK_SEL_APS_PCLK_DIVN_UNGATED_Pos)),
     APS_CLK_PCLK_DIV_MSK                = (AOS_APS_CLK_SEL_APS_PCLK_DIV_SEL_Msk | AOS_APS_CLK_SEL_APS_PCLK_DIVN_UNGATED_Msk),
 } E_ApsClkPclkDivn_t;
@@ -679,7 +679,7 @@ typedef enum
 {
     APS_CLK_SPI0_SRC_RC                 = 0,
     APS_CLK_SPI0_SRC_XTAL               = 1,
-    APS_CLK_SPI0_SRC_150M_VAR           = 2,
+    APS_CLK_SPI0_SRC_150M_VAR           = 2, /* Not recommand */
     APS_CLK_SPI0_SRC_DECI_160M_BB       = 3,
     APS_CLK_SPI0_SRC_D1_200M            = 4,
     APS_CLK_SPI0_SRC_EXTERNAL           = 5
@@ -699,7 +699,7 @@ typedef enum
 {
     APS_CLK_SPI1_SRC_RC                 = 0,
     APS_CLK_SPI1_SRC_XTAL               = 1,
-    APS_CLK_SPI1_SRC_150M_VAR           = 2,
+    APS_CLK_SPI1_SRC_150M_VAR           = 2, /* Not recommand */
     APS_CLK_SPI1_SRC_DECI_160M_BB       = 3,
     APS_CLK_SPI1_SRC_EXTERNAL           = 4
 }E_ApsClkSpi1Src_t;
@@ -718,7 +718,7 @@ typedef enum
 {
     APS_CLK_SPI2_SRC_RC                 = 0,
     APS_CLK_SPI2_SRC_XTAL               = 1,
-    APS_CLK_SPI2_SRC_150M_VAR           = 2,
+    APS_CLK_SPI2_SRC_150M_VAR           = 2, /* Not recommand */
     APS_CLK_SPI2_SRC_DECI_160M_BB       = 3,
     APS_CLK_SPI2_SRC_EXTERNAL           = 4
 }E_ApsClkSpi2Src_t;
@@ -737,7 +737,7 @@ typedef enum
 {
     APS_CLK_SPI3_SRC_RC                 = 0,
     APS_CLK_SPI3_SRC_XTAL               = 1,
-    APS_CLK_SPI3_SRC_150M_VAR           = 2,
+    APS_CLK_SPI3_SRC_150M_VAR           = 2, /* Not recommand */
     APS_CLK_SPI3_SRC_DECI_160M_BB       = 3,
     APS_CLK_SPI3_SRC_EXTERNAL           = 4
 }E_ApsClkSpi3Src_t;
@@ -1168,7 +1168,7 @@ typedef enum
 {
     APS_CLK_CAM_XVCLK_SRC_XTAL          = 0,
     APS_CLK_CAM_XVCLK_SRC_XTAL_X2       = 1,
-    APS_CLK_CAM_XVCLK_SRC_150M_VAR      = 2,
+    APS_CLK_CAM_XVCLK_SRC_150M_VAR      = 2, /* Not recommand */
     APS_CLK_CAM_XVCLK_SRC_DECI_160M_BB  = 3,
     APS_CLK_CAM_XVCLK_SRC_EXTERNAL      = 4,    
     APS_CLK_CAM_XVCLK_SRC_MSK           = AOS_CAM_XVCLK_SEL_CAM_XVCLKSEL_Msk,

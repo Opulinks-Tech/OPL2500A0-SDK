@@ -151,7 +151,9 @@ typedef struct
 
     double tick_32k;
     
-    uint8_t reserved[20];
+    /* Below: reserved 20 bytes */
+    uint8_t psp_enable;
+    uint8_t reserved[19];
 
 } t_ps_conf;
 

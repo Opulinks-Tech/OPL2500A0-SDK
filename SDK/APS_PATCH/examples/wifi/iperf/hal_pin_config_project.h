@@ -176,7 +176,7 @@ Head Block of The File
                                                  * *********************************** */
 
 
-#define HAL_PIN_TYPE_PATCH_IO_4               (PIN_TYPE_GPIO_DISABLE_IO4        | PIN_DRVCRNT_IO4_2mA   | PIN_INMODE_IO4_FLOATING)
+#define HAL_PIN_TYPE_PATCH_IO_4               (PIN_TYPE_GPIO_OUT_LOW_IO4        | PIN_DRVCRNT_IO4_2mA   | PIN_INMODE_IO4_FLOATING)
                                                 /* ***********************************
                                                  *     PIN_TYPE_APS_SWDIO_IO4
                                                  *     PIN_TYPE_APS_UART_CTS_N_IO4
@@ -249,7 +249,7 @@ Head Block of The File
                                                  * *********************************** */
 
 
-#define HAL_PIN_TYPE_PATCH_IO_6               (PIN_TYPE_GPIO_DISABLE_IO6        | PIN_DRVCRNT_IO6_2mA   | PIN_INMODE_IO6_FLOATING)
+#define HAL_PIN_TYPE_PATCH_IO_6               (PIN_TYPE_GPIO_OUT_LOW_IO6        | PIN_DRVCRNT_IO6_2mA   | PIN_INMODE_IO6_FLOATING)
                                                 /* ***********************************
                                                  *     PIN_TYPE_APS_SWCLK_IO6
                                                  *     PIN_TYPE_APS_UART_RTS_N_IO6
@@ -630,7 +630,7 @@ Head Block of The File
                                                  * *********************************** */
 
 
-#define HAL_PIN_TYPE_PATCH_IO_18              (PIN_TYPE_GPIO_DISABLE_IO18          | PIN_DRVCRNT_IO18_12mA | PIN_INMODE_IO18_FLOATING)
+#define HAL_PIN_TYPE_PATCH_IO_18              (PIN_TYPE_GPIO_OUT_LOW_IO18          | PIN_DRVCRNT_IO18_12mA | PIN_INMODE_IO18_FLOATING)
                                                 /* ***********************************
                                                  *     PIN_TYPE_APS_SWDIO_IO18
                                                  *     PIN_TYPE_APS_UART_RXD_IO18

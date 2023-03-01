@@ -61,6 +61,7 @@ extern "C" {
  *************************************************************************
  */
 void SysInit_EntryPoint(void);
+void Sys_XipEnable(E_FUNC_ST eFunc);
 
 
 #ifdef __cplusplus

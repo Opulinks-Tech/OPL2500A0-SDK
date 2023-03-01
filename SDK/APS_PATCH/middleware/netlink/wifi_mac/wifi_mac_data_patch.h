@@ -16,8 +16,14 @@
 #ifndef _WIFI_MAC_DATA_PATCH_H_
 #define _WIFI_MAC_DATA_PATCH_H_
 
+#if (REFINE_RX_PROC == 2)
+#include "lwip/pbuf.h"
+
+extern volatile uint8_t g_u8RxFrameHdrLen;
+#endif
 
 void wifi_mac_rx_data_init_patch(void);
+void wifi_mac_tx_data_init_patch(void);
 
 
 #endif /* _WIFI_MAC_DATA_PATCH_H_ */

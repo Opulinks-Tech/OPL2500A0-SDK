@@ -10,6 +10,7 @@ MEMORY
     APS_XIP (rx)  : ORIGIN = APS_XIP_START, LENGTH = APS_XIP_RANGE
 }
 
+INCLUDE link_sub.ld
 
 SECTIONS
 {

@@ -11,9 +11,9 @@
  *******************************************************************************
  *
  *  @file wpa_err.h
- * 
+ *
  *  @brief `
- *  
+ *
  ******************************************************************************/
 
 #ifndef _WPA_ERR_H_
@@ -70,6 +70,8 @@
 
 #define WPA_ERR_KEY_MGMT_INVALID         -80
 #define WPA_ERR_KEY_MGMT_NOT_SUPP        -81
+
+#define WPA_ERR_PMKSA_OK                 -90
 
 #endif /* _WPA_ERR_H_ */
 

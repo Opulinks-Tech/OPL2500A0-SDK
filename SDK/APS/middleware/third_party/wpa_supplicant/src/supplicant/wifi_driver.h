@@ -94,6 +94,7 @@ typedef struct {
     size_t num_pmkid;
     const u8 *pmkid;
     int mgmt_group_cipher;
+    uint8_t rsnxe_capa;
 } wifi_wpa_ie_t;
 
 struct wpa_funcs {
@@ -123,12 +124,12 @@ struct wpa2_funcs {
     int  (*wpa2_sta_config_profile)(void);
     int  (*wpa2_sta_config_bss)(uint8_t *bssid);
     int  (*wpa2_sta_rx_eapol)(u8 *src_addr, u8 *buf, u32 len);
-    
+
     int  (*wpa2_eap_peer_sm_init)(void);
     void (*wpa2_eap_peer_sm_deinit)(void);
     int  (*wpa2_eap_peer_eapol_start)(void);
     int  (*wpa2_eap_peer_rx_eapol)(u8 *src_addr, u8 *buf, u32 len, u8 *bssid);
-    
+
     int  (*wpa2_get_state)(void);
 };
 

@@ -87,6 +87,11 @@ struct wpa_ssid {
 	u8 psk[32];
 
 	/**
+	 * psk_set - Whether PSK field is configured
+	 */
+	int psk_set;
+
+	/**
 	 * passphrase - WPA ASCII passphrase
 	 *
 	 * If this is set, psk will be generated using the SSID and passphrase

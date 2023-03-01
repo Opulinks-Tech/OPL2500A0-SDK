@@ -25,5 +25,7 @@
  */
 void at_cmd_ble_func_init(void);
 
+#include "at_cmd_ble_patch.h"
+
 #endif //__AT_CMD_BLE_H__
 

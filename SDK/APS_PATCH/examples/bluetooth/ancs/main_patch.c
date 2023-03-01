@@ -60,7 +60,7 @@ Head Block of The File
 /********************************************
 Declaration of data structure
 ********************************************/
-// Sec 3: structure, uniou, enum, linked list
+// Sec 3: structure, union, enum, linked list
 
 
 /********************************************
@@ -80,6 +80,7 @@ static E_PIN_MAIN_UART_MODE g_eAppMainUartMode = PIN_MAIN_UART_MODE_AT;
 // Sec 7: declaration of static function prototype
 void __Patch_EntryPoint(void) __attribute__((section("ENTRY_POINT")));
 void __Patch_EntryPoint(void) __attribute__((used));
+static void Main_HeapPatchInit(void);
 static void Main_PinMuxUpdate(void);
 static void Main_MiscModulesInit(void);
 static void Main_FlashLayoutUpdate(void);
@@ -121,8 +122,11 @@ void __Patch_EntryPoint(void)
     // update the flash layout
     MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
     
+    /* APS_HEAP_START and APS_HEAP_LENGTH are from scatter/linker file
+     * When needs to change HEAP size, please modify scatter/linker file.
+     * Do NOT write the argument here */
     osHeapAssign(APS_HEAP_START, APS_HEAP_LENGTH);
-    //Sys_SetUnsuedSramEndBound(0x43E000);
+    Main_HeapPatchInit();
     
     Sys_MiscModulesInit = Main_MiscModulesInit;
     
@@ -133,6 +137,43 @@ void __Patch_EntryPoint(void)
     Sys_AppInit = Main_AppInit_patch;
 }
 
+/*************************************************************************
+* FUNCTION:
+*   Main_HeadPatchInit
+*
+* DESCRIPTION:
+*   Update HEAP setting here.
+*   This function must be run after osHeapAssign. i.e. HEAP size updated first.
+*
+* PARAMETERS
+*   none
+*
+* RETURNS
+*   none
+*
+*************************************************************************/
+static void Main_HeapPatchInit(void)
+{
+    osMemoryDef_t PartitionMemoryTable[MAX_NUM_MEM_POOL] = {
+        /* {block_size, number}
+         *     block_size: The memory block max allocation size.
+         *     number: The number of the memory block of given block size.
+         * The order of block size must be small to big.
+         * When block_size or block_num is zero, it means end of table.
+         *
+         *{block_size, number} */
+          {        32,     48},
+          {        64,     32},
+          {       128,     64},
+          {       256,     28},
+          {       512,     12},
+          {         0,      0},
+          {         0,      0},
+          {         0,      0}
+    };
+    
+    osMemoryPoolUpdate(PartitionMemoryTable);
+}
 
 /*************************************************************************
 * FUNCTION:

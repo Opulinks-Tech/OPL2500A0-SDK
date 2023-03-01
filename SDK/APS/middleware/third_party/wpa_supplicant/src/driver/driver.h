@@ -113,6 +113,7 @@ struct wpa_scan_res {
 
     int rsn_ie_offset;
     int wpa_ie_offset;
+    int rsnxe_ie_offset;
 
     u8 bssid[ETH_ALEN];
     int chan;

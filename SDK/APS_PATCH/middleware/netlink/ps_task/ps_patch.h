@@ -60,7 +60,12 @@ extern "C" {
  *************************************************************************
  */
 void ps_patch_init(void);
+void ps_init_patch(void);
+void sleep_warm_init_patch(void);
 void ps_task_create_patch(void);
+void ps_task_delete_patch(void);
+void ps_psp_wkup_clk_ready(void);
+void ps_psp_enable(uint32_t enable);
 
 #ifdef __cplusplus
 }

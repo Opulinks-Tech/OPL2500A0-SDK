@@ -30,6 +30,7 @@
 #include "hal_uart.h"
 #include "hal_qspi.h"
 #include "hal_flash.h"
+#include "hal_cache.h"
 #include "hal_vic.h"
 #include "hal_uart.h"
 #include "hal_wdt.h"
@@ -42,7 +43,9 @@
 #include "lwip_jmptbl_patch.h"
 #include "controller_wifi.h"
 #include "le_ctrl_patch.h"
+#include "at_cmd_common.h"
 #include "at_cmd_func_patch.h"
+#include "mw_fim_default_group01.h"
 #include "mw_fim_default_group02_patch.h"
 #include "wifi_mac_data.h"
 
@@ -59,7 +62,6 @@
  *                          Typedefs and Structures
  *************************************************************************
  */
-
 /*
 *************************************************************************
 *                           Declarations of Private Functions
@@ -69,6 +71,8 @@ void LeHostPatchAssign(void);
 void Sys_ClockSetup_patch(void);
 void Sys_ServiceInit_patch(void);
 void Sys_DriverInit_patch(void);
+void Sys_UartInit_patch(void);
+void Sys_XipInit(void);
 /*
  *************************************************************************
  *                          Public Variables
@@ -81,8 +85,7 @@ void Sys_DriverInit_patch(void);
  *                          Private Variables
  *************************************************************************
  */
-
-
+E_FUNC_ST g_eSys_XipEnable = DISABLE;
 /*
  *************************************************************************
  *                          Public Functions
@@ -102,10 +105,16 @@ void SysInit_EntryPoint(void)
     // Only for cold boot
     if (Boot_CheckWarmBoot())
         return;
+    
+    Boot_PrepareM0PatchOK_patch();    /* Move here, skip origin function */
     Hal_Sys_SpareRegWait(SPARE_0, IPC_SPARE0_PATCH_SYNC_MASK, 1);   /* Wait MSQ run PatchEntry */
     
     // init bss section
     memset(ZI_REGION_START, 0, ZI_REGION_LENGTH);
+    #if defined(GCC)
+    memset(ZI_REGION_SHARERAM_START, 0, ZI_REGION_SHARERAM_LENGTH);
+    memset(ZI_REGION_PART1RAM_START, 0, ZI_REGION_PART1RAM_LENGTH);
+    #endif
     
     // 0. Tracer
 
@@ -117,6 +126,7 @@ void SysInit_EntryPoint(void)
     Sys_ClockSetup  = Sys_ClockSetup_patch;
     Sys_ServiceInit = Sys_ServiceInit_patch;
     Sys_DriverInit = Sys_DriverInit_patch;
+    Sys_UartInit = Sys_UartInit_patch;
     
     // 4. IPC
     Ipc_PatchInit();
@@ -126,6 +136,8 @@ void SysInit_EntryPoint(void)
     // 6. Wifi
     ctrl_wifi_init_patch();
     wifi_mac_rx_data_init_patch();
+    wifi_mac_tx_data_init_patch();
+    ieee80211_crypto_init_patch();
     
     // 7. le_ctrl
     le_ctrl_pre_patch_init();
@@ -148,6 +160,7 @@ void SysInit_EntryPoint(void)
     Hal_Sys_PatchInit();
     Hal_Sys_PatchVerInit(IPC_SW_VER_INFO_START);    /* make sure if IPC address updated */
     Hal_Qspi_PatchInit();
+    Hal_Cache_Pre_Init();
     Hal_FlashPatchInit();
     Hal_Vic_PatchInit();
     Hal_Uart_PatchInit();
@@ -196,9 +209,8 @@ void Sys_ClockSetup_patch(void)
 {
     if (!Boot_CheckWarmBoot())
     {
-        /* switch to XTAL_X2 */
-        Hal_Sys_ApsClkTreeSetup(APS_CLK_SYS_SRC_XTAL_X2, APS_CLK_SYS_DIV_1, APS_CLK_PCLK_DIV_1);
-
+        Hal_Sys_ApsClkTreeSetup(APS_CLK_SYS_SRC_XTAL, APS_CLK_SYS_DIV_1, APS_CLK_PCLK_DIV_1);
+        Hal_Sys_StclkSetup(ENABLE, APS_CLK_ST_DIV_8);
         Hal_Sys_UnusedModuleDis();
 
         /* Switch peripheral clock to XTAL, because RC will be turned off later */
@@ -212,14 +224,29 @@ void Sys_ClockSetup_patch(void)
     {
         Sys_WaitforMsqReady();
         Hal_Sys_WakeupClkResume();
+        ps_psp_wkup_clk_ready();
         Sys_NotifyReadyToMsq(IPC_SPARE0_APS_WARMBOOT_CLK_READY_MSK);
     }
 }
 
 void Sys_ServiceInit_patch(void)
 {
-    uint32_t u32Addr;
     Sys_ServiceInit_impl();
+    Sys_XipInit();
+}
+
+
+void Sys_XipEnable(E_FUNC_ST eFunc)
+{
+    g_eSys_XipEnable = eFunc;
+}
+
+void Sys_XipInit(void)
+{
+    uint32_t u32Addr;
+    
+    if (g_eSys_XipEnable == DISABLE)
+        return;
     
     if(Hal_Flash_Check(SPI_IDX_0) != SUPPORTED_FLASH)
         return;
@@ -227,12 +254,19 @@ void Sys_ServiceInit_patch(void)
     if (MwOta_BootAddrGet(&u32Addr) == MW_OTA_FAIL)
         u32Addr = 0;
     
-    Hal_FlashQspiXipInit(SPI_SLAVE_0, u32Addr);
+    if (Hal_FlashQspiXipInit(SPI_SLAVE_0, u32Addr) == RESULT_SUCCESS)
+    {   /* Enable Cache when XIP enabled */
+        Hal_Cache_ClockEnable();
+        Hal_Cache_Enable(1);
+        Hal_Cache_PipelineEnable(0);
+        Hal_Cache_PrefetchBypass(0);
+    }
 }
 
 void Sys_DriverInit_patch(void)
 {
     uint32_t u32ClkFreq;
+    uint32_t u32Spare0 = 0;
     
     sleep_cold_init();
     
@@ -332,8 +366,53 @@ void Sys_DriverInit_patch(void)
     //Hal_Flash_Init(SPI_IDX_1, SPI_SLAVE_0);
     //Hal_Flash_Init(SPI_IDX_3, SPI_SLAVE_0);
 
-
+    Hal_Sys_SpareRegRead(SPARE_0, &u32Spare0);
+    if (u32Spare0 & IPC_SPARE0_WARMBOOT_XTAL_NOT_RDY_MASK)
+    {
+        printf("XtalFail\n");
+        msg_print_uart1("XtalFail\n");
+        while (1);
+        /* Wait WDT trigger */
+    }
     // Other tasks' driver config
     // For APP use, put last in this function.
     Sys_MiscModulesInit();
 }
+
+void Sys_UartInit_patch(void)
+{
+    T_HalUartConfig tUartConfig;
+
+    if (!Boot_CheckWarmBoot())
+    {   /* Cold boot */
+//        /* Init UART0 */
+//        if (MW_FIM_OK != MwFim_FileRead(MW_FIM_IDX_GP01_UART_CFG, 0, MW_FIM_UART_CFG_SIZE, (uint8_t*)&tUartConfig))
+//        {
+//            // if fail, get the default value
+//            memcpy(&tUartConfig, &g_ctHal_Uart_DefaultConfig, MW_FIM_UART_CFG_SIZE);
+//        }
+
+//        Hal_Uart_Init(UART_IDX_0,
+//                      tUartConfig.ulBuadrate,
+//                      (E_UartDataBit_t)(tUartConfig.ubDataBit),
+//                      (E_UartParity_t)(tUartConfig.ubParity),
+//                      (E_UartStopBit_t)(tUartConfig.ubStopBit),
+//                      tUartConfig.ubFlowCtrl);
+        /* Init UART1, AT UART */
+        if (MW_FIM_OK != MwFim_FileRead(MW_FIM_IDX_GP01_UART_CFG, 1, MW_FIM_UART_CFG_SIZE, (uint8_t*)&tUartConfig))
+        {
+            // if fail, get the default value
+            memcpy(&tUartConfig, &g_ctHal_Uart_DefaultConfig, MW_FIM_UART_CFG_SIZE);
+        }
+        Hal_Uart_Init(UART_IDX_1,
+                      tUartConfig.ulBuadrate,
+                      (E_UartDataBit_t)(tUartConfig.ubDataBit),
+                      (E_UartParity_t)(tUartConfig.ubParity),
+                      (E_UartStopBit_t)(tUartConfig.ubStopBit),
+                      tUartConfig.ubFlowCtrl);
+
+        // HCI and AT command
+        uart1_mode_set_default();
+    }
+}
+

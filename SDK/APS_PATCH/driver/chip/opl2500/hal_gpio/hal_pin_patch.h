@@ -37,7 +37,7 @@ extern "C" {
  *                          Definitions and Macros
  *************************************************************************
  */
-
+#define GPIO_IDX_OUT_MAX    (GPIO_IDX_38)
 
 /*
  *************************************************************************
@@ -52,7 +52,9 @@ extern "C" {
  *                          Public Variables
  *************************************************************************
  */
-
+extern uint8_t g_u8Gpio_TxEn;
+extern uint8_t g_u8Gpio_RxEn;
+extern uint8_t g_u8Gpio_LnaEn;
 
 /*
  *************************************************************************
@@ -61,6 +63,8 @@ extern "C" {
  */
 
 void Hal_SysDisableAllTxPeriphPinmux(void);
+void Hal_ExtPa_Pin_Set(uint8_t u8Gpio_TxEn, uint8_t u8Gpio_RxEn, uint8_t u8Gpio_LnaEn);
+
 #ifdef __cplusplus
 }
 #endif

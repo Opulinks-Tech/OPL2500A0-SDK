@@ -17,5 +17,9 @@ typedef struct _ieee80211_igtk {
 
 int ieee80211_igtk_set_ext(uint32_t alg, uint32_t key_idx, uint32_t key_len, uint8_t *keys, uint8_t *pn);
 
+s32 ieee80211_encrypt_frame_ext(ieee80211_key *key, u8 *frame, size_t len, size_t hdrlen, u8 *encrypt, size_t* crypt_len, u8 *input_frame_payload);
+s32 ieee80211_decrypt_frame_ext(ieee80211_key *key, u8 *data, size_t data_len, size_t hdrlen, u8 *decrypted, size_t* decrypted_len);
+
+void ieee80211_crypto_init_patch(void);
 
 #endif /* _IEEE80211_CRYPTO_PATCH_H_ */

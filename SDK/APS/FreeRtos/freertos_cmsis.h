@@ -39,4 +39,5 @@ int osHeapAssign_impl(uint32_t u32HeapStartAddr, uint32_t u32HeapSize);
 }
 #endif
 
+#include "freertos_cmsis_patch.h"
 #endif  /* _FREERTOS_CMSIS_H_ */

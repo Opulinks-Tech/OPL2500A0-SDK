@@ -55,6 +55,8 @@ extern "C" {
     uint8_t ssid[WIFI_MAX_LENGTH_OF_SSID];
     uint8_t bssid[WIFI_MAC_ADDRESS_LENGTH];
     uint8_t channel;
+    uint8_t pmk[WAPI_PMK_LEN];
+    uint8_t pmk_len;
 } wifi_auto_connect_ap_list_t;
 
 typedef struct {
@@ -85,6 +87,8 @@ typedef struct {
     uint8_t ssid[WIFI_MAX_LENGTH_OF_SSID];
     uint8_t bssid[WIFI_MAC_ADDRESS_LENGTH];
     uint8_t channel;
+    uint8_t psk[WAPI_PMK_LEN];
+    uint8_t psk_len;
 } mw_fim_wifi_auto_connect_ap_info_t;
 
 #ifdef __cplusplus

@@ -31,4 +31,5 @@ extern ccmp_encrypt_fp_t ccmp_encrypt;
 extern ccmp_decrypt_mgmt_fp_t ccmp_decrypt_mgmt;
 extern ccmp_encrypt_mgmt_fp_t ccmp_encrypt_mgmt;
 
+#include "ieee80211_crypto_ccmp_patch.h"
 #endif /* _IEEE80211_CRYPTO_CCMP_H_ */

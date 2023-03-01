@@ -28,7 +28,6 @@ struct wpa_sm;
 int wpa_sm_rx_eapol(struct wpa_sm *sm, const u8 *src_addr, const u8 *buf, size_t len);
 bool wpa_sta_is_cur_pmksa_set(void);
 bool wpa_sta_in_4way_handshake(void);
-bool wpa_sta_cur_pmksa_matches_akm(void);
 
 struct l2_ethhdr {
     u8 h_dest[ETH_ALEN];
@@ -124,12 +123,26 @@ char * dup_binstr(const void *src, size_t len);
 
 void wpa_set_pmk(struct wpa_supplicant *wpa_s, uint8_t *pmk, const u8 *pmkid, bool cache_pmksa);
 
+bool wpa_sta_cur_pmksa_matches_akm(struct wpa_sm *sm);
+
+int wpa_sm_set_ap_rsn_ie(struct wpa_sm *sm, const u8 *ie, size_t len);
+
+int wpa_sm_set_ap_rsnxe(struct wpa_sm *sm, const u8 *ie, size_t len);
+
+int wpa_sm_set_assoc_rsnxe(struct wpa_sm *sm, const u8 *ie, size_t len);
+
 int wpa_hook_init(void);
 
 bool wpa_hook_deinit(void);
 
 char * dup_binstr(const void *src, size_t len);
 
-void wpa_sta_clear_curr_pmksa(void);
+int wpa_sm_pmksa_cache_list(struct wpa_sm *sm, char *buf, size_t len);
+
+void wpa_sta_clear_curr_pmksa(struct wpa_supplicant *wpa_s);
+
+void wpa_sta_skip_supp_pmkcache(struct wpa_supplicant *wpa_s, bool en);
+
+void wpa_sm_drop_sa(struct wpa_sm *sm);
 
 #endif /* WPA_H */

@@ -63,6 +63,7 @@ typedef struct
 
     /* Add parameters from here to reduce patch effort */
     uint8_t       tx_bssid[CTRL_WIFI_MAC_ADDR_LEN];     /**< BSS ID - 48 bit HW address. Transmitted BSSID */
+    uint8_t       rsnxe_ie[3];                          /**< ELEMENT_HEADER_LEN + IEEE80211_RSNXE_LEN */
 } ctrl_wifi_ap_info_patch_t;
 
 typedef struct {
@@ -71,6 +72,7 @@ typedef struct {
     uint8_t   ssid_len;
     int       rsn_ie_offset;
     int       wpa_ie_offset;
+    int       rsnxe_ie_offset;
     uint8_t   bssid[CTRL_WIFI_MAC_ADDR_LEN];
     int       channel;
     uint16_t  beacon_int;

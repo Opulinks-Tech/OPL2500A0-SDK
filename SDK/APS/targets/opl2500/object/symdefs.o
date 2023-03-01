@@ -1237,7 +1237,6 @@
 0x00005089 T Hal_Dma_Init_impl
 0x000050c9 T Hal_Dma_IntClearAll_impl
 0x0000510d T Hal_Dma_IntClear_impl
-0x00005179 T Hal_Dma_IntEn_impl
 0x0000520d T Hal_Dma_IntMask_impl
 0x00005261 T Hal_Dma_m2mXfer_impl
 0x00005359 T Hal_Flash_4KSectorAddrErase_Ext_impl
@@ -1433,7 +1432,6 @@
 0x0000aba1 T Hal_Sys_ResetStatusClear
 0x0000abb1 T Hal_Sys_ResetStatusRead
 0x0000abbd T Hal_Sys_RetRamCtrlBySeq_impl
-0x0000abdd T Hal_Sys_RetRamTurnOff
 0x0000ac29 T Hal_Sys_RetRamTurnOn_impl
 0x0000ac61 T Hal_Sys_RomVerInit
 0x0000ac99 T Hal_Sys_RtcClkCfg_impl
@@ -2349,6 +2347,7 @@
 0x0004ee19 T ble_set_config_bd_addr
 0x0004ee25 T ble_set_config_bd_addr_impl
 0x0004efc1 T bss_reset
+0x0004f42f T ccmp_aad_nonce
 0x0004f525 T ccmp_decrypt_impl
 0x0004f655 T ccmp_decrypt_mgmt_impl
 0x0004f725 T ccmp_encrypt_impl
@@ -4331,6 +4330,8 @@
 0x000a1ad9 T tkip_encrypt_impl
 0x000a1c2d T tkip_get_pn
 0x000a1c49 T tkip_mic_check_impl
+0x000a1d71 T tkip_mixing_phase1
+0x000a1e25 T tkip_mixing_phase2
 0x000a2261 T tracer_cfg_reset_impl
 0x000a2289 T tracer_cfg_save_impl
 0x000a22e9 T tracer_cmd_impl
@@ -5364,7 +5365,6 @@
 0x004033c0 D Hal_Dma_Init
 0x004033c4 D Hal_Dma_Abort
 0x004033c8 D Hal_Dma_IntMask
-0x004033cc D Hal_Dma_IntEn
 0x004033d0 D Hal_Dma_IntClear
 0x004033d4 D Hal_Dma_IntClearAll
 0x004033d8 D Hal_Dma_CallBackSet

@@ -769,4 +769,5 @@ enum ieee80211_eid {
 	WLAN_EID_QOS_PARAMETER = 222,
 };
 
+#include "ieee80211_mac_header_patch.h"
 #endif /* _IEEE80211_MAC_HEADER_H_ */

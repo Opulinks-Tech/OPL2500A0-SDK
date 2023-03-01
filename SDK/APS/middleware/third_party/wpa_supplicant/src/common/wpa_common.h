@@ -91,6 +91,8 @@
 #define RSN_KEY_DATA_IGTK RSN_SELECTOR(0x00, 0x0f, 0xac, 9)
 #endif /* CONFIG_IEEE80211W */
 
+#define WFA_KEY_DATA_TRANSITION_DISABLE RSN_SELECTOR(0x50, 0x6f, 0x9a, 0x20)
+
 #define WPA_OUI_TYPE RSN_SELECTOR(0x00, 0x50, 0xf2, 1)
 
 #define RSN_SELECTOR_PUT(a, val) WPA_PUT_BE32((u8 *) (a), (val))
@@ -148,6 +150,11 @@
 #define WPA_KEY_INFO_ENCR_KEY_DATA BIT(12) /* IEEE 802.11i/RSN only */
 #define WPA_KEY_INFO_SMK_MESSAGE BIT(13)
 
+/* IEEE 802.11, EAPOL-Key frames Transition Disable Bitmap field index */
+#define WFA_KEY_DATA_TRANSITION_DISABLE_PERSONAL BIT(0)
+#define WFA_KEY_DATA_TRANSITION_DISABLE_PK BIT(1)
+#define WFA_KEY_DATA_TRANSITION_DISABLE_ENTERPRISE BIT(2)
+#define WFA_KEY_DATA_TRANSITION_DISABLE_OWE BIT(3)
 
 struct wpa_eapol_key {
 	u8 type;
@@ -185,6 +192,12 @@ struct wpa_ptk {
 		} auth;
 	} u;
 } STRUCT_PACKED;
+
+
+struct wpa_gtk {
+	u8 gtk[WPA_GTK_MAX_LEN];
+	size_t gtk_len;
+};
 
 #ifdef CONFIG_IEEE80211W
 struct wpa_igtk {
@@ -340,10 +353,12 @@ struct wpa_ie_data {
 	size_t num_pmkid;
 	const u8 *pmkid;
 	int mgmt_group_cipher;
+	uint8_t rsnxe_capa;
 };
 
 const char * wpa_cipher_txt(int cipher);
 
+const char * wpa_key_mgmt_txt(int key_mgmt, int proto);
 unsigned int wpa_mic_len(int akmp, size_t pmk_len);
 
 #ifdef CONFIG_IEEE80211W
@@ -352,6 +367,9 @@ int wpa_cipher_valid_mgmt_group(int cipher);
 
 int wpa_parse_wpa_ie_rsn(const u8 *rsn_ie, size_t rsn_ie_len,
 			 struct wpa_ie_data *data);
+
+int wpa_parse_wpa_ie_rsnxe(const u8 *rsnxe_ie, size_t rsnxe_ie_len,
+			    struct wpa_ie_data *data);
 
 int wpa_eapol_key_mic(const u8 *key, int ver, const u8 *buf, size_t len,
 		      u8 *mic);

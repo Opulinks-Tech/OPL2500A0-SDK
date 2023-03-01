@@ -21,4 +21,5 @@ extern tkip_decrypt_fp_t tkip_decrypt;
 extern tkip_encrypt_fp_t tkip_encrypt;
 extern tkip_mic_check_fp_t tkip_mic_check;
 
+#include "ieee80211_crypto_tkip_patch.h"
 #endif /* _IEEE80211_CRYPTO_TKIP_H_ */

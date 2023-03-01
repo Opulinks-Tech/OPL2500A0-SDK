@@ -15,23 +15,24 @@
 
 typedef enum
 {
+    /* Note: Updated in patch file! */
     SYS_CFG_CLK_22_MHZ = 0,
     SYS_CFG_CLK_44_MHZ,
-    SYS_CFG_CLK_78_MHZ,
-    SYS_CFG_CLK_81_MHZ,
-    SYS_CFG_CLK_84_MHZ,
-    SYS_CFG_CLK_87_MHZ,
-    SYS_CFG_CLK_90_MHZ,
-    SYS_CFG_CLK_93_MHZ,
-    SYS_CFG_CLK_97_MHZ,
-    SYS_CFG_CLK_101_MHZ,
-    SYS_CFG_CLK_106_MHZ,
-    SYS_CFG_CLK_110_MHZ,
-    SYS_CFG_CLK_116_MHZ,
-    SYS_CFG_CLK_122_MHZ,
-    SYS_CFG_CLK_128_MHZ,
-    SYS_CFG_CLK_135_MHZ,
-    SYS_CFG_CLK_143_MHZ,
+    SYS_CFG_CLK_78_MHZ,  /* Not recommand */
+    SYS_CFG_CLK_81_MHZ,  /* Not recommand */
+    SYS_CFG_CLK_84_MHZ,  /* Not recommand */
+    SYS_CFG_CLK_87_MHZ,  /* Not recommand */
+    SYS_CFG_CLK_90_MHZ,  /* Not recommand */
+    SYS_CFG_CLK_93_MHZ,  /* Not recommand */
+    SYS_CFG_CLK_97_MHZ,  /* Not recommand */
+    SYS_CFG_CLK_101_MHZ, /* Not recommand */
+    SYS_CFG_CLK_106_MHZ, /* Not recommand */
+    SYS_CFG_CLK_110_MHZ, /* Not recommand */
+    SYS_CFG_CLK_116_MHZ, /* Not recommand */
+    SYS_CFG_CLK_122_MHZ, /* Not recommand */
+    SYS_CFG_CLK_128_MHZ, /* Not recommand */
+    SYS_CFG_CLK_135_MHZ, /* Not recommand */
+    SYS_CFG_CLK_143_MHZ, /* Not recommand */
     SYS_CFG_CLK_176_MHZ,
 
     SYS_CFG_CLK_MAX

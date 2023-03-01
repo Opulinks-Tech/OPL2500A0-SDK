@@ -14,7 +14,7 @@
 
 #include "ble_type_define.h"
 
-typedef void *LE_QLIST_T[5];
+typedef void *LE_QLIST_T[6];
 
 
 void LeQueuePushHead(void *ls, void *m);

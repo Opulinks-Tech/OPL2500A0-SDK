@@ -46,14 +46,45 @@ extern "C" {
 
 #define APS_STCLK_SKEW                              (1 << 24)
 
+
+#define AOS_APS_DM_CLK_UNSED_MODULES                (AOS_APS_DM_CLK_SEL_I2S_SCLK_EN |           \
+                                                     AOS_APS_DM_CLK_SEL_APSXIP_CACHE_HCLK_EN |  \
+                                                     AOS_APS_DM_CLK_SEL_APSXIP_PREFT_HCLK_EN |  \
+                                                     AOS_APS_DM_CLK_SEL_AUX_DSADC_PCLK_EN |     \
+                                                     AOS_APS_DM_CLK_SEL_AUX_DSADC_CLK_EN  |     \
+                                                     AOS_APS_DM_CLK_SEL_PDM_IO_CLK_EN |         \
+                                                     AOS_APS_DM_CLK_SEL_PDM_CLK_DIV_EN |        \
+                                                     AOS_APS_DM_CLK_SEL_PDM_CLK_EN      |       \
+                                                     AOS_APS_DM_CLK_SEL_PDM_PCLK_EN)
+
+
+/* APS SysTick clock */
+#define APS_CLK_ST_DIVN_GET(value)                  ( 8 >> (((value) & AOS_APS_STCLK_APS_STCLK_SRC_SEL_Msk) >> AOS_APS_STCLK_APS_STCLK_SRC_SEL_Pos) )    /* 0: 8, 1:4, 2: 2, 3:1 */
+
+#define VAR_SRC_DIV_MIN          (8)
+#define VAR_SRC_DIV_BYPASS_TH    (15)
+#define VAR_SRC_DIV_MAX          (31)
+
 /*
  *************************************************************************
  *                          Typedefs and Structures
  *************************************************************************
  */
+/** APS Systick divider. Systick source: XTAL */
+typedef enum
+{
+    APS_CLK_ST_DIV_1                    = (3 << AOS_APS_STCLK_APS_STCLK_SRC_SEL_Pos),
+    APS_CLK_ST_DIV_2                    = (2 << AOS_APS_STCLK_APS_STCLK_SRC_SEL_Pos),
+    APS_CLK_ST_DIV_4                    = (1 << AOS_APS_STCLK_APS_STCLK_SRC_SEL_Pos),
+    APS_CLK_ST_DIV_8                    = (0 << AOS_APS_STCLK_APS_STCLK_SRC_SEL_Pos),
+} E_ApsClkStDivn_t;
 
-
-
+typedef enum
+{
+    VAR_SRC_150M = 0,
+    VAR_SRC_180M,
+    VAR_SRC_200M
+} E_ApsVarSrc_t;
 /*
  *************************************************************************
  *                          Public Variables
@@ -68,6 +99,12 @@ extern "C" {
  */
 
 void Hal_Sys_RccPatchInit(void);
+uint32_t Hal_Sys_StclkSetup(E_FUNC_ST eEnable, E_ApsClkStDivn_t eDiv);
+uint32_t Hal_Sys_VarSrcDiv_Set( E_ApsVarSrc_t eVarsrc, uint8_t u8Div );
+uint8_t Hal_Sys_VarSrcDiv_Get( E_ApsVarSrc_t eVarsrc );
+uint8_t Hal_Sys_Var150Src_PeriCheck( void );
+uint8_t Hal_Sys_Var180Src_PeriCheck( void );
+uint8_t Hal_Sys_Var200Src_PeriCheck( void );
 
 #ifdef __cplusplus
 }

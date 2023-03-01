@@ -16,7 +16,7 @@ AR      = $(CROSS_COMPILE)ar
 
 ############# Ram mapping ############
 APS_PATCH_START = 0x412454
-APS_HEAP_START = 0x444000
+APS_HEAP_START = 0x443000
 APS_RAM_END = 0x454000
 
 ############# include SRC ############
@@ -31,7 +31,8 @@ include ./sdk_src.mk
 PATCH_LIB = $(OUTPUT_FOLDER)/opl2500_patch_aps.a
 WPAS_LIB = $(ROOT)/APS/middleware/third_party/wpa_supplicant/project/lib/wpa_supplicant.a
 SDK_LIB   = $(OUTPUT_FOLDER)/opl2500_sdk_aps.a
-MAIN_LIB  = $(OUTPUT_FOLDER)/opl2500_app_aps.a
+MAIN_LIB  = $(OUTPUT_FOLDER)/$(OUTPUT).a
+CHKRGN_LIB = $(OUTPUT_FOLDER)/$(OUTPUT)_chkrgn.a
 
 
 #############  CFLAGS   ##############
@@ -80,10 +81,23 @@ LFLAGS += -Wl,--defsym=LD_APS_PATCH_START=$(APS_PATCH_START)
 LFLAGS += -Wl,--defsym=LD_APS_HEAP_START=$(APS_HEAP_START)
 LFLAGS += -Wl,--defsym=LD_APS_RAM_END=$(APS_RAM_END)
 LFLAGS += -Wl,--gc-sections
+#LFLAGS += -Wl,--print-memory-usage
 LFLAGS += -Wl,--entry=__Patch_EntryPoint
 LFLAGS += -Wl,--start-group $(PATCH_LIB) $(SDK_LIB) $(MAIN_LIB)
-#LFLAGS += -Wl,--end-group
+LFLAGS += -Wl,--end-group
 LFLAGS += -Wl,-Map=$(OUTPUT_FOLDER)/$(OUTPUT).map
+
+
+LFLAGS_CHKRGN  = -T $(LD_SCRIPT)
+LFLAGS_CHKRGN += -Wl,--defsym=LD_APS_PATCH_START=$(APS_PATCH_START)
+LFLAGS_CHKRGN += -Wl,--defsym=LD_APS_HEAP_START=$(APS_HEAP_START)
+LFLAGS_CHKRGN += -Wl,--defsym=LD_APS_RAM_END=$(APS_RAM_END)
+LFLAGS_CHKRGN += -Wl,--print-memory-usage
+LFLAGS_CHKRGN += -Wl,--entry=__Patch_EntryPoint
+LFLAGS_CHKRGN += -Wl,--start-group $(PATCH_LIB) $(SDK_LIB) $(CHKRGN_LIB)
+LFLAGS_CHKRGN += -Wl,--end-group
+LFLAGS_CHKRGN += -Wl,-Map=$(OUTPUT_FOLDER)/$(OUTPUT)_chkrgn.map
+
 
 #############   include    ##############
 INCDIR  = -I $(ROOT)/APS/project/opl2500/boot_sequence
@@ -220,29 +234,43 @@ M_SRC = $(ROOT)/APS_PATCH/project/opl2500/startup/main_patch.o
 
 
 #############   build   ##############
-all: patch sdk $(M_SRC)
+all: patch sdk $(M_SRC) check_region
 	@rm -f $(MAIN_LIB)
 	@$(AR) -r $(MAIN_LIB) $(M_SRC)
 	@$(CC) -o $(OUTPUT_FOLDER)/$(OUTPUT).elf $(LFLAGS) $(CFLAGS) $(INCDIR)
-	@$(OBJCOPY) -O binary $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/$(OUTPUT).bin
-	@$(OBJCOPY) -O srec --srec-forceS3 $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/$(OUTPUT).s37
-	@ECHO Generate $(OUTPUT).bin
+	@$(OBJCOPY) -O binary --only-section=.aps_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_ram1_EntryPoint.bin
+	@echo Generate opl2500_ram1_EntryPoint.bin
+	@$(OBJCOPY) -O binary --only-section=.shm_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_ram2_ShmRegion.bin
+	@echo Generate opl2500_ram2_ShmRegion.bin
+	@$(OBJCOPY) -O binary --only-section=.part1_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_ram3_PartMem.bin
+	@echo Generate opl2500_ram3_PartMem.bin
+	@$(OBJCOPY) -O binary --only-section=.cache_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_ram4_CacheRam.bin
+	@echo Generate opl2500_ram4_CacheRam.bin
+
 
 %.o: %.c
 	@$(CC) -c $(CFLAGS) $(INCDIR) $^ -o $@
-	@ECHO Build $@
+	@echo Build $@
 
 sdk: $(SDK_SRC)
 	@rm -f $(SDK_LIB)
 	@$(AR) -rT $(SDK_LIB) $(SDK_SRC) $(WPAS_LIB)
+
+
 
 ifeq ("$(SRC_EXIST)","1")
     patch: prepare $(PATCH_SRC)
 		@mkdir -p $(OUTPUT_FOLDER)
 		@rm -f $(PATCH_LIB)
 		@$(AR) -r $(PATCH_LIB) $(PATCH_SRC)
+    check_region:
+		@$(AR) -r $(CHKRGN_LIB) $(M_SRC)
+		@$(CC) -o $(OUTPUT_FOLDER)/$(OUTPUT)_chkrgn.elf $(LFLAGS_CHKRGN) $(CFLAGS) $(INCDIR)
+		@rm -f $(OUTPUT_FOLDER)/$(OUTPUT)_chkrgn.a
+		@rm -f $(OUTPUT_FOLDER)/$(OUTPUT)_chkrgn.elf
 else
     patch:
+    check_region:
 endif
 
 prepare:

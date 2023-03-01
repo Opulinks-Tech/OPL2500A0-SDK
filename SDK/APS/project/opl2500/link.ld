@@ -5,8 +5,12 @@ APS_RAM_END     = LD_APS_RAM_END;
 
 MEMORY
 {
-    APS_RAM (rwx) : ORIGIN = APS_PATCH_START, LENGTH = APS_RAM_END - APS_PATCH_START
+    APS_RAM (rwx)   : ORIGIN = APS_PATCH_START, LENGTH = APS_RAM_END - APS_PATCH_START
 }
+
+
+INCLUDE link_sub.ld
+INCLUDE link_cacheram.ld
 
 SECTIONS
 {
@@ -16,22 +20,22 @@ SECTIONS
     .aps_entry : { *(ENTRY_POINT) } >APS_RAM
     
     __aps_text_start__ = ADDR(.aps_text);
-    .aps_text ALIGN(4) : { *(.text) *(.text*) } >APS_RAM
+    .aps_text ALIGN(4) : { *(.text .text*) } >APS_RAM
     . = ALIGN(4);
     __aps_text_end__ = .;
 
     __aps_rodata_start__ = ADDR(.aps_rodata);
-    .aps_rodata ALIGN(4) : { *(.rodata) *(.rodata*) } >APS_RAM
+    .aps_rodata ALIGN(4) : { *(.rodata .rodata*) } >APS_RAM
     . = ALIGN(4);
     __aps_rodata_end__ = .;
     
     __aps_data_start__ = ADDR(.aps_data);
-    .aps_data ALIGN(4) : { *(.data) *(.data*) } >APS_RAM
+    .aps_data ALIGN(4) : { *(.data .data*) } >APS_RAM
     . = ALIGN(4);
     __aps_data_end__ = .;
     
     __aps_bss_start__ = ADDR(.aps_bss);
-    .aps_bss ALIGN(4) : { *(.bss) *(.bss*) *(COMMON) } >APS_RAM
+    .aps_bss ALIGN(4) : { *(.bss .bss* COMMON) } >APS_RAM
     . = ALIGN(4);
     __aps_bss_end__ = .;
     

@@ -16,7 +16,7 @@ AR      = $(CROSS_COMPILE)ar
 
 ############# Ram mapping ############
 APS_PATCH_START = 0x412454
-APS_HEAP_START = 0x444000
+APS_HEAP_START = 0x443000
 APS_RAM_END = 0x454000
 APS_XIP_RANGE = 0x80000
 
@@ -70,7 +70,7 @@ CFLAGS += -Xlinker "--just-symbols=$(ROOT)/APS/targets/opl2500/object/symdefs_gc
 CFLAGS += -Wno-implicit-function-declaration
 CFLAGS += -Wno-int-conversion
 
-LFLAGS  = -T $(LD_SCRIPT)
+LFLAGS  = -T $(LD_SCRIPT) -L $(ROOT)/APS/project/opl2500/
 LFLAGS += -Wl,--defsym=LD_APS_PATCH_START=$(APS_PATCH_START)
 LFLAGS += -Wl,--defsym=LD_APS_HEAP_START=$(APS_HEAP_START)
 LFLAGS += -Wl,--defsym=LD_APS_RAM_END=$(APS_RAM_END)
@@ -220,15 +220,18 @@ all: $(M_SRC)
 	@$(AR) -r $(MAIN_LIB) $(M_SRC)
 	@$(CC) -o $(OUTPUT_FOLDER)/$(OUTPUT).elf $(LFLAGS) $(CFLAGS) $(INCDIR)
 	@$(OBJCOPY) -O binary --only-section=.aps_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_ram1_EntryPoint.bin
-	@ECHO Generate opl2500_ram1_EntryPoint.bin
+	@echo Generate opl2500_ram1_EntryPoint.bin
+	@$(OBJCOPY) -O binary --only-section=.shm_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_ram2_ShmRegion.bin
+	@echo Generate opl2500_ram2_ShmRegion.bin
+	@$(OBJCOPY) -O binary --only-section=.part1_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_ram3_PartMem.bin
+	@echo Generate opl2500_ram3_PartMem.bin
 	@$(OBJCOPY) -O binary --only-section=.xip_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_xip_rom.bin
-	@ECHO Generate opl2500_xip_rom.bin
-	@$(OBJCOPY) -O srec --srec-forceS3 $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/$(OUTPUT).s37
-	@ECHO Generate $(OUTPUT).s37
+	@echo Generate opl2500_xip_rom.bin
+	
 
 %.o: %.c
 	@$(CC) -c $(CFLAGS) $(INCDIR) $^ -o $@
-	@ECHO Build $@
+	@echo Build $@
 
 #############   clean   ##############  
 clean:

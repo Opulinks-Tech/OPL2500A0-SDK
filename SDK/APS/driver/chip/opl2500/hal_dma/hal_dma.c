@@ -73,7 +73,7 @@ T_Hal_Dma_Config_fp        Hal_Dma_Config       = Hal_Dma_Config_impl;
 T_Hal_Dma_Enable_fp        Hal_Dma_Enable       = Hal_Dma_Enable_impl;
 T_Hal_Dma_Abort_fp         Hal_Dma_Abort        = Hal_Dma_Abort_impl;
 T_Hal_Dma_IntMask_fp       Hal_Dma_IntMask      = Hal_Dma_IntMask_impl;
-T_Hal_Dma_IntEn_fp         Hal_Dma_IntEn        = Hal_Dma_IntEn_impl;
+//T_Hal_Dma_IntEn_fp         Hal_Dma_IntEn        = Hal_Dma_IntEn_impl;
 T_Hal_Dma_IntClear_fp      Hal_Dma_IntClear     = Hal_Dma_IntClear_impl;
 T_Hal_Dma_IntClearAll_fp   Hal_Dma_IntClearAll  = Hal_Dma_IntClearAll_impl;
 T_Hal_Dma_CallBackSet_fp   Hal_Dma_CallBackSet  = Hal_Dma_CallBackSet_impl;
@@ -418,58 +418,58 @@ void Hal_Dma_IntMask_impl(E_DMA_CHANNEL eChannel, uint8_t u8Bmp)
 }
 
 
-/*************************************************************************
-* FUNCTION:
-*  Hal_Dma_IntEn
-*
-* DESCRIPTION:
-*   1. Enable/Disable the DMA interrupts
-*
-* CALLS
-*
-* PARAMETERS
-*   1. u8Enable : 1 = Enable
-*                 0 = Disable
-*   2. u8Bmp : bitmap of Channels
-*              1 = Apply Change
-*              0 = No Change
-*
-* RETURNS
-*   0 : setting complete
-*   1 : error
-* GLOBALS AFFECTED
-* 
-*************************************************************************/
-uint32_t Hal_Dma_IntEn_impl(uint8_t u8Enable, uint8_t u8Bmp)
-{
-    uint8_t u8Ch0En = (u8Bmp & DMA_BMP_INT_CH0) ? 1 : 0;
-    uint8_t u8Ch1En = (u8Bmp & DMA_BMP_INT_CH1) ? 1 : 0;
-    uint8_t u8Ch2En = (u8Bmp & DMA_BMP_INT_CH2) ? 1 : 0;
-    uint8_t u8Ch3En = (u8Bmp & DMA_BMP_INT_CH3) ? 1 : 0;
-    
-    /* Write IER, enable interrupt */
-    if(u8Enable == ENABLE)
-    {
-        Hal_Vic_IntInit(APS_DMA_IRQn, VIC_TRIG_LEVEL_HIGH, IRQ_PRIORITY_DMA);
-        
-        /* Module part: Enable module */
-        DMA->CTL0_L = DMA->CTL0_L | (u8Ch0En << DMA_CTL_L_INT_EN_Pos);
-        DMA->CTL1_L = DMA->CTL1_L | (u8Ch1En << DMA_CTL_L_INT_EN_Pos);
-        DMA->CTL2_L = DMA->CTL2_L | (u8Ch2En << DMA_CTL_L_INT_EN_Pos);
-        DMA->CTL3_L = DMA->CTL3_L | (u8Ch3En << DMA_CTL_L_INT_EN_Pos);
-    }
-    else
-    {
-        /* Module part: Disable module */
-        DMA->CTL0_L = DMA->CTL0_L & ~(u8Ch0En << DMA_CTL_L_INT_EN_Pos);
-        DMA->CTL1_L = DMA->CTL1_L & ~(u8Ch1En << DMA_CTL_L_INT_EN_Pos);
-        DMA->CTL2_L = DMA->CTL2_L & ~(u8Ch2En << DMA_CTL_L_INT_EN_Pos);
-        DMA->CTL3_L = DMA->CTL3_L & ~(u8Ch3En << DMA_CTL_L_INT_EN_Pos);
+///*************************************************************************
+//* FUNCTION:
+//*  Hal_Dma_IntEn
+//*
+//* DESCRIPTION:
+//*   1. Enable/Disable the DMA interrupts
+//*
+//* CALLS
+//*
+//* PARAMETERS
+//*   1. u8Enable : 1 = Enable
+//*                 0 = Disable
+//*   2. u8Bmp : bitmap of Channels
+//*              1 = Apply Change
+//*              0 = No Change
+//*
+//* RETURNS
+//*   0 : setting complete
+//*   1 : error
+//* GLOBALS AFFECTED
+//* 
+//*************************************************************************/
+//uint32_t Hal_Dma_IntEn_impl(uint8_t u8Enable, uint8_t u8Bmp)
+//{
+//    uint8_t u8Ch0En = (u8Bmp & DMA_BMP_INT_CH0) ? 1 : 0;
+//    uint8_t u8Ch1En = (u8Bmp & DMA_BMP_INT_CH1) ? 1 : 0;
+//    uint8_t u8Ch2En = (u8Bmp & DMA_BMP_INT_CH2) ? 1 : 0;
+//    uint8_t u8Ch3En = (u8Bmp & DMA_BMP_INT_CH3) ? 1 : 0;
+//    
+//    /* Write IER, enable interrupt */
+//    if(u8Enable == ENABLE)
+//    {
+//        Hal_Vic_IntInit(APS_DMA_IRQn, VIC_TRIG_LEVEL_HIGH, IRQ_PRIORITY_DMA);
+//        
+//        /* Module part: Enable module */
+//        DMA->CTL0_L = DMA->CTL0_L | (u8Ch0En << DMA_CTL_L_INT_EN_Pos);
+//        DMA->CTL1_L = DMA->CTL1_L | (u8Ch1En << DMA_CTL_L_INT_EN_Pos);
+//        DMA->CTL2_L = DMA->CTL2_L | (u8Ch2En << DMA_CTL_L_INT_EN_Pos);
+//        DMA->CTL3_L = DMA->CTL3_L | (u8Ch3En << DMA_CTL_L_INT_EN_Pos);
+//    }
+//    else
+//    {
+//        /* Module part: Disable module */
+//        DMA->CTL0_L = DMA->CTL0_L & ~(u8Ch0En << DMA_CTL_L_INT_EN_Pos);
+//        DMA->CTL1_L = DMA->CTL1_L & ~(u8Ch1En << DMA_CTL_L_INT_EN_Pos);
+//        DMA->CTL2_L = DMA->CTL2_L & ~(u8Ch2En << DMA_CTL_L_INT_EN_Pos);
+//        DMA->CTL3_L = DMA->CTL3_L & ~(u8Ch3En << DMA_CTL_L_INT_EN_Pos);
 
-        Hal_Vic_IntDeInit(APS_DMA_IRQn);
-    }
-    return 0;
-}
+//        Hal_Vic_IntDeInit(APS_DMA_IRQn);
+//    }
+//    return 0;
+//}
 
 /*************************************************************************
 * FUNCTION:

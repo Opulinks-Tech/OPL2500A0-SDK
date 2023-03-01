@@ -37,7 +37,26 @@ extern "C" {
  *                          Definitions and Macros
  *************************************************************************
  */
-
+// Re-define T_SysCfgClkIdx
+#define SYS_CFG_CLK_XTAL            ( SYS_CFG_CLK_22_MHZ )
+#define SYS_CFG_CLK_XTAL_X2         ( SYS_CFG_CLK_44_MHZ )
+#define SYS_CFG_CLK_VAR_078_MHZ     ( SYS_CFG_CLK_78_MHZ )
+#define SYS_CFG_CLK_VAR_081_MHZ     ( SYS_CFG_CLK_81_MHZ )
+#define SYS_CFG_CLK_VAR_084_MHZ     ( SYS_CFG_CLK_84_MHZ )
+#define SYS_CFG_CLK_VAR_087_MHZ     ( SYS_CFG_CLK_87_MHZ )
+#define SYS_CFG_CLK_VAR_090_MHZ     ( SYS_CFG_CLK_90_MHZ )
+#define SYS_CFG_CLK_VAR_093_MHZ     ( SYS_CFG_CLK_93_MHZ )
+#define SYS_CFG_CLK_VAR_097_MHZ     ( SYS_CFG_CLK_97_MHZ )
+#define SYS_CFG_CLK_VAR_101_MHZ     ( SYS_CFG_CLK_101_MHZ )
+#define SYS_CFG_CLK_VAR_106_MHZ     ( SYS_CFG_CLK_106_MHZ )
+#define SYS_CFG_CLK_VAR_110_MHZ     ( SYS_CFG_CLK_110_MHZ )
+#define SYS_CFG_CLK_VAR_116_MHZ     ( SYS_CFG_CLK_116_MHZ )
+#define SYS_CFG_CLK_VAR_122_MHZ     ( SYS_CFG_CLK_122_MHZ )
+#define SYS_CFG_CLK_VAR_128_MHZ     ( SYS_CFG_CLK_128_MHZ )
+#define SYS_CFG_CLK_VAR_135_MHZ     ( SYS_CFG_CLK_135_MHZ )
+#define SYS_CFG_CLK_VAR_143_MHZ     ( SYS_CFG_CLK_143_MHZ )
+#define SYS_CFG_CLK_DECI_160_MHZ    ( SYS_CFG_CLK_176_MHZ )
+#define SYS_CFG_CLK_DECI_080_MHZ    ( SYS_CFG_CLK_176_MHZ + 1 )
 
 /*
  *************************************************************************

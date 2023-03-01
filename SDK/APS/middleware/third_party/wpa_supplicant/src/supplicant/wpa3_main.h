@@ -11,9 +11,9 @@
  *******************************************************************************
  *
  *  @file wpa3_main.h
- * 
- *  @brief 
- *  
+ *
+ *  @brief
+ *
  ******************************************************************************/
 
 #ifndef _WPA3_MAIN_H_
@@ -55,7 +55,7 @@ extern "C" {
  */
 struct wpabuf * wpa3_build_sae_commit(struct wpa_supplicant *wpa_s, u8 *bssid);
 struct wpabuf * wpa3_build_sae_confirm(struct wpa_supplicant *wpa_s);
-int wpa3_parse_sae_commit(struct wpa_supplicant *wpa_s, uint8_t *buf, uint32_t len);
+int wpa3_parse_sae_commit(struct wpa_supplicant *wpa_s, uint8_t *buf, uint32_t len, uint16_t auth_status);
 int wpa3_parse_sae_confirm(struct wpa_supplicant *wpa_s, uint8_t *buf, uint32_t len);
 
 #ifdef __cplusplus

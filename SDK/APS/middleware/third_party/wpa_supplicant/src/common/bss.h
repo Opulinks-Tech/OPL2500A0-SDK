@@ -39,6 +39,7 @@ struct wpa_bss {
     #ifdef OPL_AP_INFO_TO_DRIVER
     int rsn_ie_offset;
     int wpa_ie_offset;
+    int rsnxe_ie_offset;
     #endif
 
 	/** Frequency of the channel in MHz (e.g., 2412 = channel 1) */
@@ -92,5 +93,6 @@ struct wpa_bss * wpa_bss_get_next_bss(struct wpa_supplicant *wpa_s,
 void calculate_update_time(const struct os_reltime *fetch_time,
 			   unsigned int age_ms,
 			   struct os_reltime *update_time);
-
+struct wpa_bss * wpa_bss_find(struct wpa_supplicant *wpa_s, const u8 *bssid,
+			     const u8 *ssid, size_t ssid_len);
 #endif /* BSS_H */

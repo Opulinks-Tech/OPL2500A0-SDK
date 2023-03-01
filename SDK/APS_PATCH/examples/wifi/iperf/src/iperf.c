@@ -540,6 +540,134 @@ done:
     vTaskDelete(NULL);
 }
 
+#if 0 // restart tcp server automatically
+void iperf_run_tcp_server(void *arg)
+{
+    socklen_t addr_len = sizeof(struct sockaddr);
+    struct sockaddr_in remote_addr;
+    struct sockaddr_in addr;
+    int actual_recv = 0;
+    int want_recv = 0;
+    uint8_t *buffer;
+    int listen_socket;
+    struct timeval t;
+    int sockfd;
+    int opt;
+    int is_dual = false;
+    int ret;
+    fd_set read_fd;
+    
+    malloc_service_buffer(&iperf_server_ctrl, IPERF_TCP_RX_LEN);
+
+    if (!IS_CLIENT_DUAL_TEST)
+        iperf_start_report();
+
+restart:
+
+    listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (listen_socket < 0) {
+        iperf_show_socket_error_reason("tcp server create", listen_socket);
+        goto done;
+    }
+
+    setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(s_iperf_ctrl.sport);
+    addr.sin_addr.s_addr = s_iperf_ctrl.sip;
+    if (bind(listen_socket, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+        iperf_show_socket_error_reason("tcp server bind", listen_socket);
+        goto done;
+    }
+    
+    if (listen(listen_socket, 5) < 0) {
+        iperf_show_socket_error_reason("tcp server listen", listen_socket);
+        goto done;
+    }
+
+    while (!iperf_server_ctrl.finish) {
+        FD_ZERO(&read_fd);
+        FD_SET(listen_socket, &read_fd);
+        t.tv_sec = 0;
+        t.tv_usec = 500000;
+        
+        ret = select(listen_socket + 1, &read_fd, NULL, NULL, &t);
+        if (ret < 0) {
+            goto done;
+        }
+        
+        if (iperf_server_ctrl.finish) { //abort
+            goto done;
+        }
+
+        if (FD_ISSET(listen_socket, &read_fd)) { 
+            break;
+        }
+    }
+
+    buffer = iperf_server_ctrl.buffer;
+    want_recv = iperf_server_ctrl.buffer_len;
+
+    while (!iperf_server_ctrl.finish) {
+        sockfd = accept(listen_socket, (struct sockaddr*)&remote_addr, &addr_len);
+        if (sockfd < 0) {
+            iperf_show_socket_error_reason("tcp server listen", listen_socket);
+            goto done;
+        } else {
+            LOGI(TAG, "server accept: %s,%d\n", inet_ntoa(remote_addr.sin_addr), htons(remote_addr.sin_port));
+
+            t.tv_sec = IPERF_SOCKET_RX_TIMEOUT;
+            t.tv_usec = 0;
+            setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t));
+        }
+
+        while (!iperf_server_ctrl.finish) {
+            actual_recv = recv(sockfd, buffer, want_recv, 0);
+            if (actual_recv < 0) {
+                iperf_show_socket_error_reason("tcp server recv", listen_socket);
+                goto done;
+            } else if (actual_recv == 0) {
+                LOGI(TAG, "receive 0 bytes: restart tcp server\n");
+                goto done;
+            } else {
+                if (!is_dual) {
+                    is_dual = check_dual_test_by_client((iperf_client_hdr_t *)buffer, &remote_addr);
+                }
+                iperf_server_ctrl.total_len += actual_recv;
+                if (IS_AMOUNT) {
+                    if (iperf_server_ctrl.total_len >= s_iperf_ctrl.mAmount) {
+                        goto done;
+                    }
+                }
+            }
+        }
+        
+        close(sockfd);
+    }
+
+done:
+    FD_CLR(listen_socket, &read_fd);
+    close(sockfd);
+    close(listen_socket);
+
+    if(iperf_server_ctrl.finish != true)
+    {
+        osDelay(1000);
+        goto restart;
+    }
+
+    iperf_server_ctrl.finish = true;
+    
+    if (iperf_server_ctrl.buffer) {
+        free(iperf_server_ctrl.buffer);
+        iperf_server_ctrl.buffer = 0;
+    }
+
+    LOGI(TAG, "iperf server exit");
+    iperf_server_task_id = NULL;
+    vTaskDelete(NULL);
+}
+#else
 void iperf_run_tcp_server(void *arg)
 {
     socklen_t addr_len = sizeof(struct sockaddr);
@@ -654,8 +782,112 @@ done:
     iperf_server_task_id = NULL;
     vTaskDelete(NULL);
 }
+#endif
 
 
+#if 1 // restart tcp client automatically
+void iperf_run_tcp_client(void *arg)
+{
+    struct sockaddr_in local_addr;
+    struct sockaddr_in remote_addr;
+    static int actual_send = 0;
+    static int want_send = 0;
+    uint8_t *buffer;
+    int sockfd;
+    int opt;
+    
+    malloc_service_buffer(&iperf_client_ctrl, IPERF_TCP_TX_LEN);
+
+    iperf_start_report();
+
+restart:
+    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd < 0) {
+        iperf_show_socket_error_reason("tcp client create", sockfd);
+        goto done;
+    }
+
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    {
+        struct timeval timeout;      
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
+    
+        if (setsockopt (sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
+                    sizeof timeout) < 0)
+        {
+            printf("setsockopt SO_SNDTIMEO failed\n");
+        }
+        else
+        {
+            printf("setsockopt SO_SNDTIMEO success\n");
+        }
+    }
+
+    memset(&local_addr, 0, sizeof(local_addr));
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_port = 0;
+    local_addr.sin_addr.s_addr = s_iperf_ctrl.sip;
+    if (bind(sockfd, (struct sockaddr*)&local_addr, sizeof(local_addr)) != 0) {
+        iperf_show_socket_error_reason("tcp client bind", sockfd);
+        goto done;
+    }
+
+    memset(&remote_addr, 0, sizeof(remote_addr));
+    remote_addr.sin_family = AF_INET;
+    remote_addr.sin_port = htons(s_iperf_ctrl.dport);
+    remote_addr.sin_addr.s_addr = s_iperf_ctrl.dip;
+    if (connect(sockfd, (struct sockaddr *)&remote_addr, sizeof(remote_addr)) < 0) {
+        iperf_show_socket_error_reason("tcp client connect", sockfd);
+        goto done;
+    } else {
+        LOGI(TAG, "client connecting to %s, %d\n", inet_ntoa(remote_addr.sin_addr), htons(remote_addr.sin_port));
+    }
+
+    if (IS_CLIENT_DUAL_TEST) {
+        client_init_to_server(sockfd, NULL);
+    }
+
+    buffer = iperf_client_ctrl.buffer;
+    want_send = iperf_client_ctrl.buffer_len;
+
+    while (!iperf_client_ctrl.finish) {
+        actual_send = send(sockfd, buffer, want_send, 0);
+        if (actual_send <= 0) {
+            iperf_show_socket_error_reason("tcp client send", sockfd);
+            goto done;
+        } else {
+            iperf_client_ctrl.total_len += actual_send;
+            if (IS_AMOUNT) {
+                if (iperf_client_ctrl.total_len >= s_iperf_ctrl.mAmount) {
+                    goto done;
+                }
+            }
+        }
+    }
+
+done:
+    close(sockfd);
+
+    if(iperf_client_ctrl.finish != true)
+    {
+        osDelay(1000);
+        goto restart;
+    }
+
+    iperf_client_ctrl.finish = true;
+    
+    if (iperf_client_ctrl.buffer) {
+        free(iperf_client_ctrl.buffer);
+        iperf_client_ctrl.buffer = 0;
+    }
+
+    LOGI(TAG, "iperf client exit");
+    iperf_client_task_id = NULL;
+    vTaskDelete(NULL);
+}
+#else
 void iperf_run_tcp_client(void *arg)
 {
     struct sockaddr_in local_addr;
@@ -733,6 +965,7 @@ done:
     iperf_client_task_id = NULL;
     vTaskDelete(NULL);
 }
+#endif
 
 static int iperf_task_create(char *name, uint32_t size, uint32_t pri, os_pthread fn, osThreadId *thread)
 {
