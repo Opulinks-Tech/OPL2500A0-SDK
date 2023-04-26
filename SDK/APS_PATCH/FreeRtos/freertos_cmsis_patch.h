@@ -64,7 +64,8 @@ typedef struct os_memory_def
  *                          Public Functions
  *************************************************************************
  */
-
+void osHwPatch(void);
+void osPatchInit(void);
 /**
  * @brief Update partition memory pool configuration
  * @warning Call after osHeapAssign. This function will checking the HEAP size enough or not

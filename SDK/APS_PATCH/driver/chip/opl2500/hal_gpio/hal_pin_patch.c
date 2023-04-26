@@ -23,7 +23,7 @@
  */
 #include "hal_pin.h"
 #include "hal_pin_def_patch.h"
-
+#include "hal_gpio.h"
 
 /*
  *************************************************************************
@@ -48,9 +48,10 @@
  *                          Public Variables
  *************************************************************************
  */
-uint8_t g_u8Gpio_TxEn  = 0xFF; // Note: GPIO_00 ~ 38
-uint8_t g_u8Gpio_RxEn  = 0xFF; // Note: GPIO_00 ~ 38
-uint8_t g_u8Gpio_LnaEn = 0xFF; // Note: GPIO_00 ~ 38
+uint8_t g_u8Gpio_TxEn    = 0xFF; // Note: GPIO_00 ~ 38
+uint8_t g_u8Gpio_RxEn    = 0xFF; // Note: GPIO_00 ~ 38
+uint8_t g_u8Gpio_LnaEn   = 0xFF; // Note: GPIO_00 ~ 38
+uint8_t g_u8Gpio_PwrCtrl = 0xFF; // Note: GPIO_00 ~ 38
 
 /*
  *************************************************************************
@@ -72,7 +73,7 @@ uint8_t g_u8Gpio_LnaEn = 0xFF; // Note: GPIO_00 ~ 38
  *                          Public Functions
  *************************************************************************
  */
-uint8_t Hal_Pin_ConfigSet_patch(uint8_t ubIoIdx, uint16_t uwConfig, uint8_t ubDriving)
+uint8_t Hal_Pin_ConfigSet_epa3pins(uint8_t ubIoIdx, uint16_t uwConfig, uint8_t ubDriving)
 {
     // Prohibited Eext-PA pins change
     if( (ubIoIdx == g_u8Gpio_TxEn) | (ubIoIdx == g_u8Gpio_RxEn) | (ubIoIdx == g_u8Gpio_LnaEn) )
@@ -83,7 +84,18 @@ uint8_t Hal_Pin_ConfigSet_patch(uint8_t ubIoIdx, uint16_t uwConfig, uint8_t ubDr
         return Hal_Pin_ConfigSet_impl(ubIoIdx, uwConfig, ubDriving);
 }
 
-uint8_t Hal_Pin_Config_patch(uint64_t u64PinCfg)
+uint8_t Hal_Pin_ConfigSet_epa4pins(uint8_t ubIoIdx, uint16_t uwConfig, uint8_t ubDriving)
+{
+    // Prohibited Eext-PA pins change
+    if(ubIoIdx == g_u8Gpio_PwrCtrl)
+    {
+        printf("Assert: GPIO_%d was used in ext-PA.\n", ubIoIdx);
+        while(1);
+    }else
+        return Hal_Pin_ConfigSet_epa3pins(ubIoIdx, uwConfig, ubDriving);
+}
+
+uint8_t Hal_Pin_Config_epa3pins(uint64_t u64PinCfg)
 {
     S_GPIO_PIN_CFG tPinCfg;
     tPinCfg.u64Value = u64PinCfg;
@@ -95,6 +107,20 @@ uint8_t Hal_Pin_Config_patch(uint64_t u64PinCfg)
         while(1);
     }else
         return Hal_Pin_Config_impl(u64PinCfg);
+}
+
+uint8_t Hal_Pin_Config_epa4pins(uint64_t u64PinCfg)
+{
+    S_GPIO_PIN_CFG tPinCfg;
+    tPinCfg.u64Value = u64PinCfg;
+
+    // Prohibited Eext-PA pins change
+    if(tPinCfg.IoNum == g_u8Gpio_PwrCtrl)
+    {
+        printf("Assert: GPIO_%d was used in ext-PA.\n", tPinCfg.IoNum);
+        while(1);
+    }else
+        return Hal_Pin_Config_epa3pins(u64PinCfg);
 }
 
 void Hal_SysDisableAllTxPeriphPinmux(void)
@@ -149,13 +175,14 @@ void Hal_SysDisableAllTxPeriphPinmux(void)
                         (PIN_OUTGRP_VAL_IO44_PERIPH_LOW << PIN_PD_I_SEQ_SEL_PDI_SRC_IO44_Pos);
 }
 
-void Hal_ExtPa_Pin_Set(uint8_t u8Gpio_TxEn, uint8_t u8Gpio_RxEn, uint8_t u8Gpio_LnaEn)
+void Hal_ExtPa_Pin_Set(uint8_t u8Gpio_TxEn, uint8_t u8Gpio_RxEn, uint8_t u8Gpio_LnaEn, uint8_t u8Gpio_PwrCtrl)
 {
     if( (u8Gpio_TxEn > GPIO_IDX_OUT_MAX) | (u8Gpio_RxEn > GPIO_IDX_OUT_MAX) | (u8Gpio_LnaEn > GPIO_IDX_OUT_MAX) )
     {
         g_u8Gpio_TxEn  = 0xFF;
         g_u8Gpio_RxEn  = 0xFF;
         g_u8Gpio_LnaEn = 0xFF;
+        g_u8Gpio_PwrCtrl  = 0xFF;
 
         Hal_Pin_ConfigSet = Hal_Pin_ConfigSet_impl;
         Hal_Pin_Config    = Hal_Pin_Config_impl;
@@ -163,9 +190,18 @@ void Hal_ExtPa_Pin_Set(uint8_t u8Gpio_TxEn, uint8_t u8Gpio_RxEn, uint8_t u8Gpio_
         g_u8Gpio_TxEn  = u8Gpio_TxEn;
         g_u8Gpio_RxEn  = u8Gpio_RxEn;
         g_u8Gpio_LnaEn = u8Gpio_LnaEn;
-
-        Hal_Pin_ConfigSet = Hal_Pin_ConfigSet_patch;
-        Hal_Pin_Config    = Hal_Pin_Config_patch;
+        if(u8Gpio_PwrCtrl > GPIO_IDX_OUT_MAX)
+        {
+            g_u8Gpio_PwrCtrl = 0xFF;
+            Hal_Gpio_SleepIoUsrCtrlSet( (E_GpioIdx_t)u8Gpio_PwrCtrl, SLEEP_USER_CTRL_OFF);
+            Hal_Pin_ConfigSet = Hal_Pin_ConfigSet_epa3pins;
+            Hal_Pin_Config    = Hal_Pin_Config_epa3pins;
+        }else{
+            g_u8Gpio_PwrCtrl = u8Gpio_PwrCtrl;
+            Hal_Gpio_SleepIoUsrCtrlSet( (E_GpioIdx_t)u8Gpio_PwrCtrl, SLEEP_OUTPUT_ENABLE_HIGH);
+            Hal_Pin_ConfigSet = Hal_Pin_ConfigSet_epa4pins;
+            Hal_Pin_Config    = Hal_Pin_Config_epa4pins;
+        }
     }
 }
 

@@ -63,7 +63,11 @@ extern "C" {
  *                          Typedefs and Structures
  *************************************************************************
  */
-
+typedef struct
+{
+    uint8_t u8TcaEn;
+    uint8_t u8TcaThr;
+} T_TcaCfg;
 
 
 /*
@@ -78,6 +82,8 @@ extern "C" {
  *                          Public Functions
  *************************************************************************
  */
+int sys_cfg_tca_set(void *pCfg);
+
 void sys_cfg_patch_init(void);
 
 #ifdef __cplusplus

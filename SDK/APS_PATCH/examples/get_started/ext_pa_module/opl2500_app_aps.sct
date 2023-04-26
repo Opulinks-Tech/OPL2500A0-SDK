@@ -2,7 +2,7 @@
 
 /* User can modify APS_HEAP_START to adjust code size ram and HEAP start address
  * Heap starts equals to program end */
-#define APS_HEAP_START      0x443000
+#define APS_HEAP_START      0x441000
 
 
 /******* Don't modify below *********/

@@ -16,7 +16,7 @@ AR      = $(CROSS_COMPILE)ar
 
 ############# Ram mapping ############
 APS_PATCH_START = 0x412454
-APS_HEAP_START = 0x443000
+APS_HEAP_START = 0x441000
 APS_RAM_END = 0x454000
 
 

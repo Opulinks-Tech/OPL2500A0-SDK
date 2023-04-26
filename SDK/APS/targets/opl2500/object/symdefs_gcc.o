@@ -4770,6 +4770,7 @@ osMemoryPoolPcbInfoDump = 0x00401618;
 osMemoryPoolBlockInfoDump = 0x0040161c;
 osHeapAssign = 0x00401620;
 pxCurrentTCB = 0x00401624;
+xTickCount = 0x00401630;
 xSchedulerRunning = 0x00401638;
 ucHeap = 0x00401678;
 g_ulHeapTotalSize = 0x0040167c;

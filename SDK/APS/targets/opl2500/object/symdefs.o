@@ -4771,6 +4771,7 @@
 0x0040161c D osMemoryPoolBlockInfoDump
 0x00401620 D osHeapAssign
 0x00401624 D pxCurrentTCB
+0x00401630 D xTickCount
 0x00401638 D xSchedulerRunning
 0x00401678 D ucHeap
 0x0040167c D g_ulHeapTotalSize

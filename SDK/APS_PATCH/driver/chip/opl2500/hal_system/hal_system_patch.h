@@ -43,6 +43,7 @@ extern "C" {
 #define SYSTEM_SPARE_REG_SYSTEM_STATUS                  (SYS->SPARE3)
 #define HAL_SYS_SET_SYSTEM_STATUS(bitpos, bitvalue)     (BIT_SET(SYSTEM_SPARE_REG_SYSTEM_STATUS, (bitpos), (bitvalue)?1:0))
     
+#define SYSTEM_SPARE_REG_MSQ_MSP                        (SYS->SPARE4)
     
 #define SYSTEM_STATUS_XTAL_ALIGNED_BIT                  (0UL)
 #define SYSTEM_STATUS_XTAL_ALIGNED_TO_MHZ_DONE          1

@@ -26,21 +26,19 @@ SECTIONS
         *opl2500_patch_aps.a:ipc_patch.o(.text .text*)
         *opl2500_patch_aps.a:mw_fim_msq_patch.o(.text .text*)
         *opl2500_patch_aps.a:ps_func_map_patch.o(.text .text*)
-        *opl2500_patch_aps.a:ps_patch.o(.text .text*)
+        /* *opl2500_patch_aps.a:ps_patch.o(.text .text*) */
         *opl2500_patch_aps.a:at_cmd_sys_patch.o(.text .text*)
         *opl2500_patch_aps.a:at_cmd_func_patch.o(.text .text*)
         
         *sys_init_patch.o(.text .text*)
-        *irq_patch.o(.text .text*)
+        /* *irq_patch.o(.text .text*) */
         *hal_system_patch.o(.text .text*)
-        *hal_auxadc_patch.o(.text .text*)
+        /* *hal_auxadc_patch.o(.text .text*) */
         *hal_flash_patch.o(.text .text*)
-        *hal_qspi_patch.o(.text .text*)
+        /**hal_qspi_patch.o(.text .text*)*/
         *hal_sys_rcc_patch.o(.text .text*)
-        *hal_pin_patch.o(.text .text*)
         *hal_vic_patch.o(.text .text*)
         *hal_uart_patch.o(.text .text*)
-        *hal_dma_patch.o(.text .text*)
     } >SHARE_RAM
     . = ALIGN(4);
     __shm_text_end__ = .;
@@ -57,9 +55,6 @@ SECTIONS
         *opl2500_patch_aps.a:at_cmd_sys_patch.o(.rodata .rodata*)
         *opl2500_patch_aps.a:at_cmd_func_patch.o(.rodata .rodata*)
         
-        *wpa_supplicant.a:os_freertos.o(.rodata .rodata*)
-        *wpa_supplicant.a:common.o(.rodata .rodata*)
-        
         *sys_init_patch.o(.rodata .rodata*)
         *irq_patch.o(.rodata .rodata*)
         *hal_system_patch.o(.rodata .rodata*)
@@ -67,10 +62,8 @@ SECTIONS
         *hal_flash_patch.o(.rodata .rodata*)
         *hal_qspi_patch.o(.rodata .rodata*)
         *hal_sys_rcc_patch.o(.rodata .rodata*)
-        *hal_pin_patch.o(.rodata .rodata*)
         *hal_vic_patch.o(.rodata .rodata*)
         *hal_uart_patch.o(.rodata .rodata*)
-        *hal_dma_patch.o(.rodata .rodata*)
     } >SHARE_RAM
     . = ALIGN(4);
     __shm_rodata_end__ = .;
@@ -87,9 +80,6 @@ SECTIONS
         *opl2500_patch_aps.a:at_cmd_sys_patch.o(.data .data*)
         *opl2500_patch_aps.a:at_cmd_func_patch.o(.data .data*)
         
-        *wpa_supplicant.a:os_freertos.o(.data .data*)
-        *wpa_supplicant.a:common.o(.data .data*)
-        
         *sys_init_patch.o(.data .data*)
         *irq_patch.o(.data .data*)
         *hal_system_patch.o(.data .data*)
@@ -97,10 +87,8 @@ SECTIONS
         *hal_flash_patch.o(.data .data*)
         *hal_qspi_patch.o(.data .data*)
         *hal_sys_rcc_patch.o(.data .data*)
-        *hal_pin_patch.o(.data .data*)
         *hal_vic_patch.o(.data .data*)
         *hal_uart_patch.o(.data .data*)
-        *hal_dma_patch.o(.data .data*)
     } >SHARE_RAM
     . = ALIGN(4);
     __shm_data_end__ = .;
@@ -109,16 +97,13 @@ SECTIONS
     .shm_bss ALIGN(4) : { 
         *opl2500_patch_aps.a:boot_sequence_patch.o(.bss .bss* COMMON)
         *opl2500_patch_aps.a:freertos_cmsis_patch.o(.bss .bss* COMMON)
-        *opl2500_patch_aps.a:diag_task_patch.o(.bss .bss* COMMON)
+        /**opl2500_patch_aps.a:diag_task_patch.o(.bss .bss* COMMON)*/
         *opl2500_patch_aps.a:ipc_patch.o(.bss .bss* COMMON)
         *opl2500_patch_aps.a:mw_fim_msq_patch.o(.bss .bss* COMMON)
         *opl2500_patch_aps.a:ps_func_map_patch.o(.bss .bss* COMMON)
         *opl2500_patch_aps.a:ps_patch.o(.bss .bss* COMMON)
         *opl2500_patch_aps.a:at_cmd_sys_patch.o(.bss .bss* COMMON)
         *opl2500_patch_aps.a:at_cmd_func_patch.o(.bss .bss* COMMON)
-        
-        *wpa_supplicant.a:os_freertos.o(.bss .bss* COMMON)
-        /**wpa_supplicant.a:common.o(.bss .bss* COMMON)*/
         
         *sys_init_patch.o(.bss .bss* COMMON)
         *irq_patch.o(.bss .bss* COMMON)
@@ -127,10 +112,8 @@ SECTIONS
         *hal_flash_patch.o(.bss .bss* COMMON)
         *hal_qspi_patch.o(.bss .bss* COMMON)
         *hal_sys_rcc_patch.o(.bss .bss* COMMON)
-        *hal_pin_patch.o(.bss .bss* COMMON)
         *hal_vic_patch.o(.bss .bss* COMMON)
         *hal_uart_patch.o(.bss .bss* COMMON)
-        *hal_dma_patch.o(.bss .bss* COMMON)
     } >SHARE_RAM
     . = ALIGN(4);
     __shm_bss_end__ = .;
@@ -142,7 +125,7 @@ SECTIONS
     
     __part1_text_start__ = ADDR(.part1_text);
     .part1_text ALIGN(4) : { 
-        *opl2500_patch_aps.a:sys_cfg_patch.o(.text .text*)
+        /* *opl2500_patch_aps.a:sys_cfg_patch.o(.text .text*) */
         *opl2500_patch_aps.a:ble_host_patch_init.o(.text .text*)
         *opl2500_patch_aps.a:le_hci_patch.o(.text .text*)
         *opl2500_patch_aps.a:le_pts_app_patch.o(.text .text*)

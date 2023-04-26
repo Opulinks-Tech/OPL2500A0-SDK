@@ -55,6 +55,7 @@ extern "C" {
 extern uint8_t g_u8Gpio_TxEn;
 extern uint8_t g_u8Gpio_RxEn;
 extern uint8_t g_u8Gpio_LnaEn;
+extern uint8_t g_u8Gpio_PwrCtrl;
 
 /*
  *************************************************************************
@@ -63,7 +64,7 @@ extern uint8_t g_u8Gpio_LnaEn;
  */
 
 void Hal_SysDisableAllTxPeriphPinmux(void);
-void Hal_ExtPa_Pin_Set(uint8_t u8Gpio_TxEn, uint8_t u8Gpio_RxEn, uint8_t u8Gpio_LnaEn);
+void Hal_ExtPa_Pin_Set(uint8_t u8Gpio_TxEn, uint8_t u8Gpio_RxEn, uint8_t u8Gpio_LnaEn, uint8_t u8Gpio_PwrCtrl);
 
 #ifdef __cplusplus
 }

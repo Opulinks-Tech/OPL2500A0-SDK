@@ -77,6 +77,32 @@ Declaration of static Global Variables & Functions
 C Functions
 ***********/
 // Sec 8: C Functions
+void Hal_Auxadc_PatchInit(void)
+{
+    // Internal: Basic
+    // Hal_Aux_SourceSelect        = Hal_Aux_SourceSelect_ts;
+    // Hal_Aux_AdcValueGet         = Hal_Aux_AdcValueGet_ts;
+    // Internal: Calibration
+    // Hal_Aux_AdcCal_LoadDef      = Hal_Aux_AdcCal_LoadDef_impl;
+    // Hal_Aux_AdcCal_LoadOtp      = Hal_Aux_AdcCal_LoadOtp_impl;
+    Hal_Aux_AdcCal_LoadFlash    = Hal_Aux_AdcCal_LoadFlash_patch;
+    // Hal_Aux_AdcMiniVolt_Convert = Hal_Aux_AdcMiniVolt_Convert_impl;
+
+    // APIs
+    // Hal_Aux_Init                = Hal_Aux_Init_ts;
+    // Hal_Aux_AdcCal_Init         = Hal_Aux_AdcCal_Init_impl;
+    // Hal_Aux_AdcMiniVolt_Get     = Hal_Aux_AdcMiniVolt_Get_impl;
+    // Hal_Aux_AdcConvValue_Get    = Hal_Aux_AdcConvValue_Get_impl;
+
+    // Hal_Aux_Adc_AvgCnt_Get      = Hal_Aux_Adc_AvgCnt_Get_impl;
+    // Hal_Aux_Adc_AvgCnt_Set      = Hal_Aux_Adc_AvgCnt_Set_impl;
+    // Hal_Aux_Adc_PuEnDelay_Get   = Hal_Aux_Adc_PuEnDelay_Get_impl;
+    // Hal_Aux_Adc_PuEnDelay_Set   = Hal_Aux_Adc_PuEnDelay_Set_impl;
+    // Hal_Aux_Adc_AlwaysOn_Get    = Hal_Aux_Adc_AlwaysOn_Get_impl;
+    // Hal_Aux_Adc_AlwaysOn_Set    = Hal_Aux_Adc_AlwaysOn_Set_impl;
+
+    // Hal_Aux_LseRegressUpdate    = Hal_Aux_LseRegressUpdate_impl;
+}
 
 /*************************************************************************
 * FUNCTION:
@@ -99,7 +125,7 @@ uint32_t Hal_Aux_AdcCal_LoadFlash_patch( void )
     uint32_t u32Header = 0;
     
     u32Res = Hal_Flash_AddrRead(SPI_IDX_0, AUXADC_FLASH_START_ADDR, 0, sizeof(sAuxadcCalTable.u32Header), (uint8_t *)&u32Header);
-    if( u32Header == 0xFFFFFFFF)
+    if( (u32Header & MAGIC_CODE_MSK) != MAGIC_CODE_AUXADC )
         return HAL_AUX_FAIL;
 
     u32Res = Hal_Flash_AddrRead(SPI_IDX_0, AUXADC_FLASH_START_ADDR, 0, sizeof(sAuxadcCalTable), (uint8_t *)&sAuxadcCalTable);
@@ -209,7 +235,7 @@ uint32_t Hal_Aux_AdcGpioInCal(uint8_t u8GpioIdx, uint16_t u16MiniVolt, uint8_t u
     sAuxadcCalTable.stIntSrc[ u8PtsIdx ].u16MiniVolt = u16MiniVolt;
     sAuxadcCalTable.stIntSrc[ u8PtsIdx ].u16RawData = u32Temp;
     Hal_Aux_LseRegressUpdate(2, sAuxadcCalTable.stIntSrc);
-    sAuxadcCalTable.u32Header = 0x1 | u8PtsIdx;
+    sAuxadcCalTable.u32Header = MAGIC_CODE_AUXADC | ADC_CAL_SRC_MAJOR_FLASH | ADC_CAL_SRC_MINOR_GPIO_2P | u8PtsIdx;
 
     return HAL_AUX_OK;
 }
@@ -249,7 +275,7 @@ uint32_t Hal_Aux_AdcVbatInCal(uint16_t u16MiniVolt, uint8_t u8PtsIdx)
     sAuxadcCalTable.stIntSrc[ u8PtsIdx ].u16MiniVolt = u16MiniVolt;
     sAuxadcCalTable.stIntSrc[ u8PtsIdx ].u16RawData = u32Temp;
     Hal_Aux_LseRegressUpdate(2, sAuxadcCalTable.stIntSrc);
-    sAuxadcCalTable.u32Header = 0x2 | u8PtsIdx;
+    sAuxadcCalTable.u32Header = MAGIC_CODE_AUXADC | ADC_CAL_SRC_MAJOR_FLASH | ADC_CAL_SRC_MINOR_VBAT_2P | u8PtsIdx;
 
     return HAL_AUX_OK;
 }
@@ -295,7 +321,7 @@ uint8_t Hal_Aux_VbatCalibration(float fVbat)
     Hal_Aux_LseRegressUpdate(2, sAuxadcCalTable.stIntSrc);
 
     // Store data
-    sAuxadcCalTable.u32Header = 0x31;
+    sAuxadcCalTable.u32Header = MAGIC_CODE_AUXADC | ADC_CAL_SRC_MAJOR_FLASH | ADC_CAL_SRC_MINOR_VBAT_AND_GND | 0x1;
     if( HAL_AUX_OK != Hal_Aux_AdcCal_StoreFlash() )
         goto done;
 
@@ -349,8 +375,7 @@ uint8_t Hal_Aux_IoVoltageCalibration(uint8_t ubGpioIdx, float fVoltage)
     Hal_Aux_LseRegressUpdate(2, sAuxadcCalTable.stIntSrc);
 
     // Store data
-    // Store data
-    sAuxadcCalTable.u32Header = 0x41;
+    sAuxadcCalTable.u32Header = MAGIC_CODE_AUXADC | ADC_CAL_SRC_MAJOR_FLASH | ADC_CAL_SRC_MINOR_GPIO_AND_GND | 0x1;
     if( HAL_AUX_OK != Hal_Aux_AdcCal_StoreFlash() )
         goto done;
 

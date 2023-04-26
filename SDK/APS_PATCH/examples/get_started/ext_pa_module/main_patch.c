@@ -37,6 +37,7 @@ Head Block of The File
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "boot_sequence.h"
 #include "sys_init.h"
 #include "hal_system.h"
 #include "mw_fim.h"
@@ -238,6 +239,8 @@ static void Main_PinMuxUpdate(void)
     Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_SIP_44);
     
     Hal_Pin_UpdatePsramCfg();
+
+    at_io01_uart_mode_set(HAL_PIN_MAIN_UART_MODE_PATCH);
 }
 /*************************************************************************
 * FUNCTION:
@@ -276,20 +279,34 @@ static void Main_MiscModulesInit(void)
 {
     /*
      * Two steps to active ext-Pa mode:
+     *
      * Step 1) Config " hal_pin_config_project.h "
-     *         Assigned three pins (TX_EN/RX_EN/LNA_EN) according to schematic.
-     *         The pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *         1-1) Assigned three pins according to schematic:
+     *                  [ TX_EN ]
+     *                  [ RX_EN ]
+     *                  [ LNA_EN ]
+     *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *         1-2) (Optional) (0xFF for not exist)
+                    Assigned the pin : PwrCtrl according to schematic.
+     *                  [ Pwr Ctrl ]
+     *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *
      * Step 2) Set Hal_ExtPa_Pin_Set(), default value was disable.
+     *
      */
-    Hal_ExtPa_Pin_Set( 4, 6, 18);
-
-    // Force Wifi pwr to ext-PA level
-    uint8_t u8Temp = 0;
-    MwFim_FileRead(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
-    if(u8Temp < 0xE0)
+    if (!Boot_CheckWarmBoot())
     {
-        u8Temp = 0xE0;
-        MwFim_FileWrite(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        Hal_ExtPa_Pin_Set( 4, 6, 18, 0xFF); /* No PwrCtrl case */
+        // Hal_ExtPa_Pin_Set( 4, 6, 18, 5); /* PwrCtrl case */
+
+        // Force Wifi pwr to ext-PA level
+        uint8_t u8Temp = 0;
+        MwFim_FileRead(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        if(u8Temp < 0xE0)
+        {
+            u8Temp = 0xE0;
+            MwFim_FileWrite(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        }
     }
 
     //Hal_Wdt_Stop();   //disable watchdog here.

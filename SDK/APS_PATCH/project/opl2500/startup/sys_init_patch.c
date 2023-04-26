@@ -34,6 +34,7 @@
 #include "hal_vic.h"
 #include "hal_uart.h"
 #include "hal_wdt.h"
+#include "hal_auxadc.h"
 #include "ps.h"
 #include "ipc.h"
 #include "irq.h"
@@ -45,10 +46,10 @@
 #include "le_ctrl_patch.h"
 #include "at_cmd_common.h"
 #include "at_cmd_func_patch.h"
-#include "mw_fim_default_group01.h"
+#include "mw_fim_default_group01_patch.h"
 #include "mw_fim_default_group02_patch.h"
 #include "wifi_mac_data.h"
-
+#include "freertos_cmsis.h"
 /*
  *************************************************************************
  *                          Definitions and Macros
@@ -102,6 +103,8 @@ __forceinline static void Sys_NotifyReadyToMsq(uint32_t indicator)
  */
 void SysInit_EntryPoint(void)
 {
+    osHwPatch();    /* Also needs to run when warm boot */
+    
     // Only for cold boot
     if (Boot_CheckWarmBoot())
         return;
@@ -164,8 +167,10 @@ void SysInit_EntryPoint(void)
     Hal_FlashPatchInit();
     Hal_Vic_PatchInit();
     Hal_Uart_PatchInit();
+    Hal_Auxadc_PatchInit();
     
     // 14. os
+    osPatchInit();
 
     // 15. util api
 
@@ -180,6 +185,7 @@ void SysInit_EntryPoint(void)
     
     // 19. FIM
     MwFim_PatchInit();
+    MwFim_Group01_patch();
     MwFim_Group02_patch();
 
     // 20. AUXADC
@@ -369,10 +375,8 @@ void Sys_DriverInit_patch(void)
     Hal_Sys_SpareRegRead(SPARE_0, &u32Spare0);
     if (u32Spare0 & IPC_SPARE0_WARMBOOT_XTAL_NOT_RDY_MASK)
     {
-        printf("XtalFail\n");
-        msg_print_uart1("XtalFail\n");
-        while (1);
-        /* Wait WDT trigger */
+        printf("\n\n\nXtalFail\n\n\n");
+        msg_print_uart1("\n\n\nXtalFail\n\n\n");
     }
     // Other tasks' driver config
     // For APP use, put last in this function.

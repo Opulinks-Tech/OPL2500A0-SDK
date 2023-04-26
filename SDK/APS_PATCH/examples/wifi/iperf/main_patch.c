@@ -281,12 +281,26 @@ static void Main_MiscModulesInit(void)
 {
     /*
      * Two steps to active ext-Pa mode:
+     *
      * Step 1) Config " hal_pin_config_project.h "
-     *         Assigned three pins (TX_EN/RX_EN/LNA_EN) according to schematic.
-     *         The pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *         1-1) Assigned three pins according to schematic:
+     *                  [ TX_EN ]
+     *                  [ RX_EN ]
+     *                  [ LNA_EN ]
+     *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *         1-2) (Optional) (0xFF for not exist)
+                    Assigned the pin : PwrCtrl according to schematic.
+     *                  [ Pwr Ctrl ]
+     *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *
      * Step 2) Set Hal_ExtPa_Pin_Set(), default value was disable.
+     *
      */
-    Hal_ExtPa_Pin_Set( 4, 6, 18);
+    if (!Boot_CheckWarmBoot())
+    {
+        Hal_ExtPa_Pin_Set( 4, 6, 18, 0xFF); /* No PwrCtrl case */
+        // Hal_ExtPa_Pin_Set( 4, 6, 18, 5); /* PwrCtrl case */
+    }
 
     //Hal_Wdt_Stop();   //disable watchdog here.
 }

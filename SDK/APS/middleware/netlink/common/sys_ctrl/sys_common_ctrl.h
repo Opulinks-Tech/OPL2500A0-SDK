@@ -64,4 +64,6 @@ extern get_ble_bd_addr_fp_t get_ble_bd_addr;
 }
 #endif
 
+#include "sys_common_ctrl_patch.h"
+
 #endif /* _SYS_COMMON_CTRL_H_ */

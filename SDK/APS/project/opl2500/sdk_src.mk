@@ -22,4 +22,7 @@ SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/ports/freertos/ne
 SDK_SRC += $(ROOT)/APS/middleware/third_party/httpclient/httpclient.o
 #mw_fim
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/mw_fim/mw_fim_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/mw_fim/mw_fim_default_group01_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/mw_fim/mw_fim_default_group02_patch.o
+#common
+SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/common/sys_ctrl/sys_common_ctrl_patch.o

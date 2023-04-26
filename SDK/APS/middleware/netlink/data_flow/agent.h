@@ -106,6 +106,7 @@ void Rf_ScaDump_impl(uint8_t u8NumMode, uint8_t u8NumFreq, uint16_t u16FreqBase,
 void Ow_TableList_impl(uint32_t u32Addr, uint32_t u32TableNum);
 int agent_at_output_handle_impl(void* pdata);
 
+#include "agent_patch.h"
 
 #endif //#ifndef __AGENT_H__
 
