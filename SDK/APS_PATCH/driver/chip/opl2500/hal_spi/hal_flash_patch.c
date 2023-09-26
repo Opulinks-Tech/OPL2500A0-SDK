@@ -26,30 +26,18 @@
 #include "hal_flash.h"
 #include "hal_flash_internal.h"
 #include "hal_qspi.h"
-#include "mw_ota.h"
 #include "cmsis_os.h"
 /*
  *************************************************************************
  *                          Definitions and Macros
  *************************************************************************
  */
-#define PATCH_KEY               0x48435450
-#define PATCH_TYPE_XIP_COLD     0x14110400
-#define PATCH_TYPE_XIP_WARM     0x24110400
 #define NO_FLASH           0
 /*
  *************************************************************************
  *                          Typedefs and Structures
  *************************************************************************
  */
-
-typedef struct
-{
-    uint32_t u32Key;
-    uint32_t u32Type;
-    uint32_t u32Size;
-    uint32_t u32Sum;
-} S_Hal_Patch_Header_t;
 /*
 *************************************************************************
 *                           Declarations of Private Functions
@@ -60,23 +48,29 @@ uint32_t Hal_Flash_PageAddrProgram_Internal_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave
 uint32_t Hal_Flash_PageAddrRead_Internal_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t u32PageAddr, uint8_t u8UseQuadMode, uint8_t *pu8Data);
 uint32_t Hal_Flash_AddrProgram_Internal_Ext_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t u32StartAddr, uint8_t u8UseQuadMode, uint32_t u32Size, uint8_t *pu8Data);
 uint32_t Hal_Flash_AddrRead_Internal_Ext_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t u32StartAddr, uint8_t u8UseQuadMode, uint32_t u32Size, uint8_t *pu8Data);
+uint32_t Hal_Flash_4KSectorAddrErase_Internal_Ext_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t u32SecAddr);
+uint32_t Hal_Flash_QuadModeEn_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint8_t u8QModeEn);
+uint32_t _Hal_Flash_RxSampleDelaySetup_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx);
+
 /*
  *************************************************************************
  *                          Public Variables
  *************************************************************************
  */
+uint32_t g_u32aHal_Flash_BaseAddress[SPI_SLAVE_MAX] = {0xFF000000, 0xFF000000, 0xFF000000};
+/* g_u32aHal_Flash_BaseAddress: Initialized value affect equal to 0, but avoid using zero init
+ * Because zero init function runs later then the variables be used */
 
-E_RESULT_COMMON g_eHal_FlashQspiXipInitResult = RESULT_FAIL;
 /*
  *************************************************************************
  *                          Private Variables
  *************************************************************************
  */
 
-extern uint32_t g_u32FlashBaseAddr;
+
 extern osSemaphoreId g_taHalFlashSemaphoreId[SPI_IDX_MAX];
 extern uint8_t g_u8aHalFlashID[SPI_IDX_MAX][SPI_SLAVE_MAX];
- 
+
  
 
 /*
@@ -85,7 +79,7 @@ extern uint8_t g_u8aHalFlashID[SPI_IDX_MAX][SPI_SLAVE_MAX];
  *************************************************************************
  */
 
-void Hal_FlashPatchInit(void)
+void Hal_Flash_PatchInit(void)
 {
     Hal_Flash_Init = Hal_Flash_Init_patch;
     
@@ -93,6 +87,17 @@ void Hal_FlashPatchInit(void)
     Hal_Flash_PageAddrRead_Internal = Hal_Flash_PageAddrRead_Internal_patch;
     Hal_Flash_AddrProgram_Internal_Ext = Hal_Flash_AddrProgram_Internal_Ext_patch;
     Hal_Flash_AddrRead_Internal_Ext = Hal_Flash_AddrRead_Internal_Ext_patch;
+    Hal_Flash_4KSectorAddrErase_Internal_Ext = Hal_Flash_4KSectorAddrErase_Internal_Ext_patch;
+    Hal_Flash_QuadModeEn = Hal_Flash_QuadModeEn_patch;
+    _Hal_Flash_RxSampleDelaySetup = _Hal_Flash_RxSampleDelaySetup_patch;
+}
+
+void Hal_Flash_QspiBaseAddrSet(E_SpiSlave_t eSlvIdx, uint32_t BaseAddr)
+{
+    if (eSlvIdx >= SPI_SLAVE_MAX)
+        return;
+    
+    g_u32aHal_Flash_BaseAddress[eSlvIdx] = BaseAddr;
 }
 
 
@@ -102,59 +107,6 @@ void Hal_FlashPatchInit(void)
  *************************************************************************
  */
 
-/**
- * Hal_FlashQspiXipInit
- * @brief According to patch frames setting, find XIP content offset in flash.
- *        Then using the offset to set QSPI remap setting
- * @param eSlvIdx [in] Slave index of SPI0 (only SPI0 support XIP)
- * @param u32StartAddr [in] Searching flash start address
- * @return Init XIP success or not
- * @retval RESULT_SUCCESS or RESULT_FAIL
- */
-E_RESULT_COMMON Hal_FlashQspiXipInit(E_SpiSlave_t eSlvIdx, uint32_t u32StartAddr)
-{
-    uint32_t u32Addr = u32StartAddr;
-    E_RESULT_COMMON eResult = RESULT_FAIL;
-    S_Hal_Patch_Header_t sPatchHeader;
-    
-    if (g_u8aHalFlashID[SPI_IDX_0][eSlvIdx] == NO_FLASH)
-        return eResult;
-    
-    // wait the semaphore
-    osSemaphoreWait(g_taHalFlashSemaphoreId[SPI_IDX_0], osWaitForever);
-    
-    
-    if (g_eHal_FlashQspiXipInitResult == RESULT_SUCCESS)
-    {   /* Init done, reparsing again */
-        g_u32FlashBaseAddr = APS_XIP_MEM_BASE;
-        g_eHal_FlashQspiXipInitResult = RESULT_FAIL;
-    }
-    
-    while (1)
-    {
-        if (Hal_Flash_AddrRead_Internal_Ext(SPI_IDX_0, eSlvIdx, u32Addr, 0, sizeof(sPatchHeader), (uint8_t *)&sPatchHeader) == 1)
-            break;
-        u32Addr += sizeof(sPatchHeader);
-        
-        if (sPatchHeader.u32Key != PATCH_KEY) /* Not exist */
-            break;
-        
-        if (sPatchHeader.u32Type == PATCH_TYPE_XIP_COLD)
-        {   /* XIP content */
-            Hal_QSpi_UpdateRemap(u32Addr);
-            g_u32FlashBaseAddr = APS_XIP_MEM_BASE - u32Addr;
-            g_eHal_FlashQspiXipInitResult = RESULT_SUCCESS;
-            eResult = RESULT_SUCCESS;
-            break;
-        }
-        
-        u32Addr += __REV(sPatchHeader.u32Size) + sizeof(uint32_t);
-    }
-    
-    osSemaphoreRelease(g_taHalFlashSemaphoreId[SPI_IDX_0]);
-    return eResult;
-}
-
 uint32_t Hal_Flash_Init_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx)
 {
     g_u8aHalFlashID[eSpiIdx][eSlvIdx] = NO_FLASH;
@@ -163,7 +115,7 @@ uint32_t Hal_Flash_Init_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx)
 
 uint32_t Hal_Flash_PageAddrProgram_Internal_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t u32PageAddr, uint8_t u8UseQuadMode, uint8_t *pu8Data)
 {
-        if (eSlvIdx >= SPI_SLAVE_MAX)
+    if (eSlvIdx >= SPI_SLAVE_MAX)
         return 1;
         
     if (g_u8aHalFlashID[eSpiIdx][eSlvIdx] == NO_FLASH)
@@ -187,8 +139,10 @@ uint32_t Hal_Flash_PageAddrProgram_Internal_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave
         // polling flash status
         _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx);
 
-        u32Addr = FLASH_TO_XIP_ADDR(u32PageAddr & 0xFFFFFF00); // aligned page
+        u32Addr = FLASH_TO_XIP_ADDR(eSlvIdx, u32PageAddr & 0xFFFFFF00); // aligned page
         memcpy((void *)u32Addr, pu8Data, u32PageSize);
+        _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx);
+        Hal_Qspi_RestoreXipCs();
         return 0;
     }
     else
@@ -222,8 +176,9 @@ uint32_t Hal_Flash_PageAddrRead_Internal_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t 
         _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx);
         
         // ignore u8UseQuadMode, alwasy Quad mode
-        uint32_t u32Addr = FLASH_TO_XIP_ADDR(u32PageAddr);
+        uint32_t u32Addr = FLASH_TO_XIP_ADDR(eSlvIdx, u32PageAddr);
         memcpy(pu8Data, (void *)u32Addr, u32PageSize);
+        Hal_Qspi_RestoreXipCs();
         return 0;
     }
     else
@@ -254,8 +209,10 @@ uint32_t Hal_Flash_AddrProgram_Internal_Ext_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave
         // polling flash status
         _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx);
         
-        uint32_t u32Addr = FLASH_TO_XIP_ADDR(u32StartAddr);
+        uint32_t u32Addr = FLASH_TO_XIP_ADDR(eSlvIdx, u32StartAddr);
         memcpy((void *)u32Addr, pu8Data, u32Size);
+        _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx);
+        Hal_Qspi_RestoreXipCs();
         return 0;
     }
     else
@@ -286,8 +243,9 @@ uint32_t Hal_Flash_AddrRead_Internal_Ext_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t 
         // polling flash status
         _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx);
         
-        uint32_t u32Addr = FLASH_TO_XIP_ADDR(u32StartAddr);
+        uint32_t u32Addr = FLASH_TO_XIP_ADDR(eSlvIdx, u32StartAddr);
         memcpy(pu8Data, (void *)u32Addr, u32Size);
+        Hal_Qspi_RestoreXipCs();
         return 0;
     }
     else
@@ -296,4 +254,128 @@ uint32_t Hal_Flash_AddrRead_Internal_Ext_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t 
     }
 }
 
+/* Wait flash erase done to avoid XIP running fail */
+uint32_t Hal_Flash_4KSectorAddrErase_Internal_Ext_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t u32SecAddr)
+{
+    uint32_t ret;
+    ret = Hal_Flash_4KSectorAddrErase_Internal_Ext_impl(eSpiIdx, eSlvIdx, u32SecAddr);
+    if (ret == 0)
+    {
+        _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx);
+    }
+    if (eSpiIdx == SPI_IDX_0)
+        Hal_Qspi_RestoreXipCs();
+    return ret;
+}
 
+/*************************************************************************
+* FUNCTION:
+*  Hal_Flash_QuadModeEn
+*
+* DESCRIPTION:
+*   1. Enable flash into Quad mode
+*
+* CALLS
+*
+* PARAMETERS
+*   1. eSpiIdx   : Index of SPI. refer to E_SpiIdx_t
+*   2. eSlvIdx   : Index of SPI slave. refer to E_SpiSlave_t
+*   3. u8QModeEn : Quad-mode select. 1 for enable/0 for disable
+*
+* RETURNS
+*   0: setting complete
+*   1: error 
+* 
+* GLOBALS AFFECTED
+* 
+*************************************************************************/
+uint32_t Hal_Flash_QuadModeEn_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint8_t u8QModeEn)
+{
+    if ((eSpiIdx == SPI_IDX_2) || (eSpiIdx >= SPI_IDX_MAX))
+        return 1;
+
+    if (eSlvIdx >= SPI_SLAVE_MAX)
+        return 1;
+    
+    uint8_t u8Sts_1 = 0;
+    uint8_t u8Sts_2 = 0;
+    uint8_t u8IsQModeEn = 0;
+    
+    
+    _Hal_Flash_Status1Get(eSpiIdx, eSlvIdx, (uint32_t *)&u8Sts_1);
+    _Hal_Flash_Status2Get(eSpiIdx, eSlvIdx, (uint32_t *)&u8Sts_2);
+    // read Status Register first
+    if (g_u8aHalFlashID[eSpiIdx][eSlvIdx] == MACRONIX_ID)
+    {
+        u8IsQModeEn = (u8Sts_1 & FLASH_STATUS_QE_MXIC) ? 1 : 0;
+    }
+    else
+    {
+        u8IsQModeEn = (u8Sts_2 & FLASH_STATUS_QE) ? 1 : 0;
+    }
+    
+    // write Status Register if current QE bit is not set
+    if (u8QModeEn && !u8IsQModeEn)
+    {
+        if (g_u8aHalFlashID[eSpiIdx][eSlvIdx] == MACRONIX_ID)
+        {
+            u8Sts_1 |= FLASH_STATUS_QE_MXIC;
+        }
+        else
+        {
+            u8Sts_2 |= FLASH_STATUS_QE;
+        }
+        
+        _Hal_Flash_StatusSet(eSpiIdx, eSlvIdx, u8Sts_1, u8Sts_2);
+        return _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx); // poll busy
+    }
+    else if (!u8QModeEn && u8IsQModeEn)
+    {
+        if (g_u8aHalFlashID[eSpiIdx][eSlvIdx] == MACRONIX_ID)
+        {
+            u8Sts_1 &= ~FLASH_STATUS_QE_MXIC;
+        }
+        else
+        {
+            u8Sts_2 &= ~FLASH_STATUS_QE;
+        }
+        _Hal_Flash_StatusSet(eSpiIdx, eSlvIdx, u8Sts_1, u8Sts_2);
+        return _Hal_Flash_WriteDoneCheck(eSpiIdx, eSlvIdx); // poll busy
+    }
+    
+    return 0;
+}
+
+/*************************************************************************
+* FUNCTION:
+*  _Hal_Flash_RxSampleDelaySetup
+*
+* DESCRIPTION:
+*   1. setup Rx Sample Dealy by utiling WEL=1 (bit 1) after WriteEnable (06h) command
+*
+* CALLS
+*
+* PARAMETERS
+*   1. eSpiIdx : Index of SPI. refert to E_SpiIdx_t
+*   2. eSlvIdx : Index of SPI slave. refer to E_SpiSlave_t
+*
+* RETURNS
+*   0: setting complete
+*   1: error 
+* 
+* GLOBALS AFFECTED
+* 
+*************************************************************************/
+uint32_t _Hal_Flash_RxSampleDelaySetup_patch(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx)
+{
+    uint32_t ret;
+    
+    ret = _Hal_Flash_RxSampleDelaySetup_impl(eSpiIdx, eSlvIdx);
+    
+    if (ret == 1)
+        return 1;
+    
+    /* Recover WEL */
+    _Hal_Flash_CmdSend(eSpiIdx, eSlvIdx, FLASH_CMD_WRITE_DISABLE);
+    return 0;
+}

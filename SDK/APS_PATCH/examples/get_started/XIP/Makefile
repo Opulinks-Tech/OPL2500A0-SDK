@@ -18,8 +18,7 @@ AR      = $(CROSS_COMPILE)ar
 APS_PATCH_START = 0x412454
 APS_HEAP_START = 0x443000
 APS_RAM_END = 0x454000
-APS_XIP_RANGE = 0x80000
-
+APS_XIP_SIZE = 0x80000
 
 ############# include LIB ############
 
@@ -74,8 +73,9 @@ LFLAGS  = -T $(LD_SCRIPT) -L $(ROOT)/APS/project/opl2500/
 LFLAGS += -Wl,--defsym=LD_APS_PATCH_START=$(APS_PATCH_START)
 LFLAGS += -Wl,--defsym=LD_APS_HEAP_START=$(APS_HEAP_START)
 LFLAGS += -Wl,--defsym=LD_APS_RAM_END=$(APS_RAM_END)
-LFLAGS += -Wl,--defsym=LD_APS_XIP_RANGE=$(APS_XIP_RANGE)
+LFLAGS += -Wl,--defsym=LD_APS_XIP_SIZE=$(APS_XIP_SIZE)
 LFLAGS += -Wl,--gc-sections
+#LFLAGS += -Wl,--print-memory-usage
 LFLAGS += -Wl,--entry=__Patch_EntryPoint
 LFLAGS += -Wl,--start-group $(PATCH_LIB) $(SDK_LIB) $(MAIN_LIB)
 #LFLAGS += -Wl,--end-group
@@ -227,7 +227,6 @@ all: $(M_SRC)
 	@echo Generate opl2500_ram3_PartMem.bin
 	@$(OBJCOPY) -O binary --only-section=.xip_* $(OUTPUT_FOLDER)/$(OUTPUT).elf $(OUTPUT_FOLDER)/opl2500_xip_rom.bin
 	@echo Generate opl2500_xip_rom.bin
-	
 
 %.o: %.c
 	@$(CC) -c $(CFLAGS) $(INCDIR) $^ -o $@

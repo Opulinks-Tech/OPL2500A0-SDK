@@ -15,7 +15,7 @@
         <TargetCommonOption>
           <Device>ARMCM4_FP</Device>
           <Vendor>ARM</Vendor>
-          <PackID>ARM.CMSIS.5.9.0</PackID>
+          <PackID>ARM.CMSIS.5.1.1</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
           <Cpu>IRAM(0x20000000,0x00020000) IROM(0x00000000,0x00040000) CPUTYPE("Cortex-M4") FPU2 CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -413,6 +413,16 @@
               <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_spi\hal_qspi_patch.c</FilePath>
             </File>
             <File>
+              <FileName>hal_psram_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_spi\hal_psram_patch.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_cache_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_spi\hal_cache_patch.c</FilePath>
+            </File>
+            <File>
               <FileName>hal_sys_rcc_patch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_system\hal_sys_rcc_patch.c</FilePath>
@@ -436,6 +446,11 @@
               <FileName>hal_dma_patch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_dma\hal_dma_patch.c</FilePath>
+            </File>
+            <File>
+              <FileName>hal_spi_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\driver\chip\opl2500\hal_spi\hal_spi_patch.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -496,6 +511,21 @@
               <FileName>mw_fim_default_group02_patch.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\APS_PATCH\middleware\netlink\mw_fim\mw_fim_default_group02_patch.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>mw_ota</GroupName>
+          <Files>
+            <File>
+              <FileName>mw_ota_boot_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\middleware\netlink\mw_ota\mw_ota_boot_patch.c</FilePath>
+            </File>
+            <File>
+              <FileName>mw_ota_patch.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\APS_PATCH\middleware\netlink\mw_ota\mw_ota_patch.c</FilePath>
             </File>
           </Files>
         </Group>

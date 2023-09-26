@@ -30,15 +30,21 @@
 #include "hal_uart.h"
 #include "hal_qspi.h"
 #include "hal_flash.h"
+#include "hal_flash_internal.h"
+#include "hal_psram.h"
 #include "hal_cache.h"
 #include "hal_vic.h"
 #include "hal_uart.h"
 #include "hal_wdt.h"
 #include "hal_auxadc.h"
+#include "hal_pin.h"
+#include "hal_patch.h"
 #include "ps.h"
 #include "ipc.h"
 #include "irq.h"
 #include "mw_ota.h"
+#include "mw_ota_boot.h"
+#include "mw_ota_def.h"
 #include "mw_fim.h"
 #include "mw_fim_msq.h"
 #include "lwip_jmptbl_patch.h"
@@ -50,13 +56,14 @@
 #include "mw_fim_default_group02_patch.h"
 #include "wifi_mac_data.h"
 #include "freertos_cmsis.h"
+#include "agent.h"
 /*
  *************************************************************************
  *                          Definitions and Macros
  *************************************************************************
  */
 #define WDT_TIMEOUT_MSECS    10000
- 
+
 
 /*
  *************************************************************************
@@ -73,20 +80,29 @@ void Sys_ClockSetup_patch(void);
 void Sys_ServiceInit_patch(void);
 void Sys_DriverInit_patch(void);
 void Sys_UartInit_patch(void);
-void Sys_XipInit(void);
+static void Sys_XipInit(void);
 /*
  *************************************************************************
  *                          Public Variables
  *************************************************************************
  */
-
+typedef struct
+{
+    E_XIP_MODE eXipMode;
+    E_SpiSlave_t eSpiSlaveIndex;
+    uint32_t u32XipFlashAddress;
+} S_XIP_CFG;
 
 /*
  *************************************************************************
  *                          Private Variables
  *************************************************************************
  */
-E_FUNC_ST g_eSys_XipEnable = DISABLE;
+S_XIP_CFG g_sSys_XipCfg = {
+    .eXipMode = XIP_MODE_DISABLE, 
+    .eSpiSlaveIndex = SPI_SLAVE_0,
+    .u32XipFlashAddress = 0,
+};
 /*
  *************************************************************************
  *                          Public Functions
@@ -103,21 +119,36 @@ __forceinline static void Sys_NotifyReadyToMsq(uint32_t indicator)
  */
 void SysInit_EntryPoint(void)
 {
-    osHwPatch();    /* Also needs to run when warm boot */
+    /* HW patch for warm boot and cold boot */
+    Boot_HwPatchInit();
+    osHwPatch();
     
-    // Only for cold boot
+    
+    /*
+     *********************************
+     * Only for cold boot            *
+     *********************************
+     */
     if (Boot_CheckWarmBoot())
         return;
     
+    if ((uint32_t)Hal_Cache_ClockEnable == 0)
+    {   /* Not initialized yet */
+        /* patch function init */
+        Hal_Qspi_PatchInit();
+        Hal_Cache_Pre_Init();
+        Hal_Flash_PatchInit();
+    }
+    
+    Hal_Sys_Xtal32DetectStart();
     Boot_PrepareM0PatchOK_patch();    /* Move here, skip origin function */
     Hal_Sys_SpareRegWait(SPARE_0, IPC_SPARE0_PATCH_SYNC_MASK, 1);   /* Wait MSQ run PatchEntry */
     
     // init bss section
     memset(ZI_REGION_START, 0, ZI_REGION_LENGTH);
-    #if defined(GCC)
     memset(ZI_REGION_SHARERAM_START, 0, ZI_REGION_SHARERAM_LENGTH);
     memset(ZI_REGION_PART1RAM_START, 0, ZI_REGION_PART1RAM_LENGTH);
-    #endif
+
     
     // 0. Tracer
 
@@ -162,9 +193,6 @@ void SysInit_EntryPoint(void)
     Hal_Sys_RccPatchInit();
     Hal_Sys_PatchInit();
     Hal_Sys_PatchVerInit(IPC_SW_VER_INFO_START);    /* make sure if IPC address updated */
-    Hal_Qspi_PatchInit();
-    Hal_Cache_Pre_Init();
-    Hal_FlashPatchInit();
     Hal_Vic_PatchInit();
     Hal_Uart_PatchInit();
     Hal_Auxadc_PatchInit();
@@ -184,6 +212,7 @@ void SysInit_EntryPoint(void)
     Diag_PatchInit();
     
     // 19. FIM
+    MwFim_MsqPatchInit();
     MwFim_PatchInit();
     MwFim_Group01_patch();
     MwFim_Group02_patch();
@@ -195,6 +224,7 @@ void SysInit_EntryPoint(void)
     // 22. Main
 
     // 23. Agent
+    Agent_PatchInit();
     
     // 24. OTA
     
@@ -235,38 +265,204 @@ void Sys_ClockSetup_patch(void)
     }
 }
 
+
 void Sys_ServiceInit_patch(void)
 {
     Sys_ServiceInit_impl();
-    Sys_XipInit();
+
+    Hal_Sys_Xtal32CalcEnd();
 }
 
-
-void Sys_XipEnable(E_FUNC_ST eFunc)
+/**
+ * @brief XIP setup
+ *        Please call this function at __Patch_EntryPoint and before SysInit_EntryPoint
+ *
+ * @warning -------------------------------------------------------------------------------------------------
+ *          | XIP limitation:                                                                               |
+ *          | 1. When flash erasing and polling busy, the XIP will be delayed until flash process finished. |
+ *          |    Including FLASH API and FIM API                                                            |
+ *          | 2. QSPI DMA is not available                                                                  |
+ *          |    Hal_Qspi_Dma_Access is invalid                                                             |
+ *          -------------------------------------------------------------------------------------------------
+ *
+ * @param eXipMode [in] To setup the XIP mode.
+ *                      XIP_MODE_DISABLE: There is no XIP content in flash.
+ *                      XIP_MODE_OTA_BUNDLE: The XIP content is within OTA image. Slave must be CS0.
+ *                      XIP_MODE_STAND_ALONE: The XIP content is NOT within OTA image. Slave must be CS0.
+ *                      XIP_MODE_EXT_FLASH: The full external flash are XIP content. Slave must be CS1~CS3.
+ *                      XIP_MODE_EXT_PSRAM: The full external PSRAM are XIP content, and support write to PSRAM. Slave must be CS1 ~ CS3.
+ * @param eSlvIdx [in] Assign XIP mode slave index. Default is CS0.
+ *                     SPI_SLAVE_0 for SPI0_CS0. For XIP_MODE_OTA_BUNDLE and XIP_MODE_STAND_ALONE mode.
+ *                     SPI_SLAVE_1 for SPI0_CS1. For XIP_MODE_EXT_FLASH and XIP_MODE_EXT_FLASH mode.
+ *                     SPI_SLAVE_2 for SPI0_CS2. For XIP_MODE_EXT_FLASH and XIP_MODE_EXT_FLASH mode.
+ *                     SPI_SLAVE_3 for SPI0_CS3. For XIP_MODE_EXT_FLASH and XIP_MODE_EXT_FLASH mode.
+ *                     Ingored when XIP mode is XIP_MODE_DISABLE.
+ * @param u32FlashAddress [in] Only valid when XIP_MODE_STAND_ALONE mode.
+ *                             It is ignored in other modes.
+ * @return Setup status
+ * @retval RESULT_SUCCESS: configuration is valid
+ * @retval RESULT_FAIL: configuration is invalid
+ */
+E_RESULT_COMMON Sys_XipSetup(E_XIP_MODE eXipMode, E_SpiSlave_t eSlvIdx, uint32_t u32FlashAddress)
 {
-    g_eSys_XipEnable = eFunc;
-}
-
-void Sys_XipInit(void)
-{
-    uint32_t u32Addr;
+    uint32_t u32Addr = 0;
     
-    if (g_eSys_XipEnable == DISABLE)
-        return;
+    if (Boot_CheckWarmBoot())
+        goto done;
     
-    if(Hal_Flash_Check(SPI_IDX_0) != SUPPORTED_FLASH)
-        return;
+    if (eSlvIdx >= SPI_SLAVE_MAX)
+        goto error;
+    if (eXipMode >= XIP_MODE_INVALID)
+        goto error;
     
-    if (MwOta_BootAddrGet(&u32Addr) == MW_OTA_FAIL)
-        u32Addr = 0;
-    
-    if (Hal_FlashQspiXipInit(SPI_SLAVE_0, u32Addr) == RESULT_SUCCESS)
-    {   /* Enable Cache when XIP enabled */
-        Hal_Cache_ClockEnable();
-        Hal_Cache_Enable(1);
-        Hal_Cache_PipelineEnable(0);
-        Hal_Cache_PrefetchBypass(0);
+    switch (eXipMode)
+    {
+        case XIP_MODE_DISABLE:
+            g_sSys_XipCfg.eXipMode = XIP_MODE_DISABLE;
+            Hal_Sys_ApsModuleClkEn(DISABLE, APS_CLK_XIP_CACHE);
+            Hal_Sys_ApsModuleClkEn(DISABLE, APS_CLK_XIP_PREFETCH);
+            goto done;
+        case XIP_MODE_OTA_BUNDLE:
+            if (eSlvIdx != SPI_SLAVE_0)
+                goto error;
+            break;
+        case XIP_MODE_STAND_ALONE:
+            u32Addr = u32FlashAddress;
+            if (eSlvIdx != SPI_SLAVE_0)
+                goto error;
+            break;
+        case XIP_MODE_EXT_FLASH:
+            if (eSlvIdx == SPI_SLAVE_0)
+                goto error;
+            break;
+        case XIP_MODE_EXT_PSRAM:
+            if (eSlvIdx == SPI_SLAVE_0)
+                goto error;
+            break;
+        default:
+            goto error;
     }
+    
+    g_sSys_XipCfg.eXipMode = eXipMode;
+    g_sSys_XipCfg.eSpiSlaveIndex = eSlvIdx;
+    g_sSys_XipCfg.u32XipFlashAddress = u32Addr;
+    
+done:
+    Sys_XipInit();
+    
+    return RESULT_SUCCESS;
+    
+error:
+    g_sSys_XipCfg.eXipMode = XIP_MODE_DISABLE;
+    return RESULT_FAIL;
+}
+
+static void Sys_XipInit(void)
+{
+    uint32_t Spi0Clk = 0;
+    if (g_sSys_XipCfg.eXipMode >= XIP_MODE_INVALID)
+        return;
+
+    if (g_sSys_XipCfg.eXipMode == XIP_MODE_DISABLE)
+    {
+        /* Move to Sys_DriverInit */
+        return;
+    }
+    
+    Hal_Sys_Spi0SrcSelect(APS_CLK_SPI0_SRC_XTAL, APS_CLK_SPI0_DIV_1);
+    Hal_Sys_ApsClockGet(APS_CLK_GRP_SPI0, &Spi0Clk);
+    Hal_Qspi_Init(g_sSys_XipCfg.eSpiSlaveIndex, Spi0Clk/4);
+    
+    switch (g_sSys_XipCfg.eXipMode)
+    {
+        case XIP_MODE_OTA_BUNDLE:
+            Hal_Flash_ReleasePowerDown(SPI_IDX_0, g_sSys_XipCfg.eSpiSlaveIndex, 0);
+            Hal_Flash_Init_Internal(SPI_IDX_0, g_sSys_XipCfg.eSpiSlaveIndex);
+            if (!Boot_CheckWarmBoot())
+            {
+                uint32_t u32Addr;
+                if (Hal_Patch_ScanXipPartition(SPI_SLAVE_0, SYSTEM_SPARE_REG_OTA_STATUS, &u32Addr))
+                {
+                    g_sSys_XipCfg.u32XipFlashAddress = u32Addr;
+                }
+            }
+            Hal_QSpi_UpdateRemap(g_sSys_XipCfg.eSpiSlaveIndex, g_sSys_XipCfg.u32XipFlashAddress);
+            Hal_Flash_QspiBaseAddrSet(g_sSys_XipCfg.eSpiSlaveIndex, APS_XIP_MEM_BASE - g_sSys_XipCfg.u32XipFlashAddress);
+            break;
+        case XIP_MODE_STAND_ALONE:
+            Hal_Flash_ReleasePowerDown(SPI_IDX_0, g_sSys_XipCfg.eSpiSlaveIndex, 0);
+            Hal_Flash_Init_Internal(SPI_IDX_0, g_sSys_XipCfg.eSpiSlaveIndex);
+            Hal_QSpi_UpdateRemap(g_sSys_XipCfg.eSpiSlaveIndex, g_sSys_XipCfg.u32XipFlashAddress);
+            Hal_Flash_QspiBaseAddrSet(g_sSys_XipCfg.eSpiSlaveIndex, APS_XIP_MEM_BASE - g_sSys_XipCfg.u32XipFlashAddress);
+            break;
+        case XIP_MODE_EXT_FLASH:
+            Hal_Flash_ReleasePowerDown(SPI_IDX_0, g_sSys_XipCfg.eSpiSlaveIndex, 0);
+            if (Hal_Flash_Init_Internal(SPI_IDX_0, g_sSys_XipCfg.eSpiSlaveIndex) == 0)
+            {
+                S_MW_OTA_BOOT_STS *psOtaBootSts = (S_MW_OTA_BOOT_STS *)SYSTEM_SPARE_REG_OTA_STATUS;
+                uint32_t u32OtaExtImgAddr = 0;
+                if (psOtaBootSts->Signature == MW_OTA_BOOT_STATUS_SIGNATURE)
+                {
+                    if (psOtaBootSts->OtaExtImgEnable)
+                        u32OtaExtImgAddr = psOtaBootSts->CurrOtaExtImgAddr;
+                    else
+                        tracer_drct_printf("Init XIP flash, Boot Agent not support external flash\n");
+                }
+                else
+                {   /* No Boot agent */
+                    u32OtaExtImgAddr = MW_OTA_EXT_IMAGE_ADDR_PATCH_START;
+                }
+                
+                Hal_QSpi_SetXipCs(g_sSys_XipCfg.eSpiSlaveIndex);
+                if (!Boot_CheckWarmBoot())
+                {
+                    uint32_t u32Addr;
+                    if (Hal_Patch_ScanXipPartition(g_sSys_XipCfg.eSpiSlaveIndex, u32OtaExtImgAddr, &u32Addr))
+                    {
+                        g_sSys_XipCfg.u32XipFlashAddress = u32Addr;
+                    }
+                }
+                Hal_QSpi_UpdateRemap(g_sSys_XipCfg.eSpiSlaveIndex, g_sSys_XipCfg.u32XipFlashAddress);
+                Hal_Flash_QspiBaseAddrSet(g_sSys_XipCfg.eSpiSlaveIndex, APS_XIP_MEM_BASE - g_sSys_XipCfg.u32XipFlashAddress);
+            }
+            else
+            {
+                tracer_drct_printf("Init XIP on external flash fail\n");
+            }
+            break;
+        case XIP_MODE_EXT_PSRAM:
+            if (Hal_Psram_Init(SPI_IDX_0, g_sSys_XipCfg.eSpiSlaveIndex, 0, 1) == 0)
+            {
+                S_MW_OTA_BOOT_STS *psOtaBootSts = (S_MW_OTA_BOOT_STS *)SYSTEM_SPARE_REG_OTA_STATUS;
+                uint32_t u32OtaImgAddr = 0;
+                if (psOtaBootSts->Signature == MW_OTA_BOOT_STATUS_SIGNATURE)
+                {
+                    u32OtaImgAddr = psOtaBootSts->CurrOtaImagAddr;
+                }
+                Hal_QSpi_SetXipCs(g_sSys_XipCfg.eSpiSlaveIndex);
+                if (!Boot_CheckWarmBoot())
+                {
+                    uint32_t u32Addr, u32Size;
+                    u32Size = Hal_Patch_ScanXipPartition(g_sSys_XipCfg.eSpiSlaveIndex, u32OtaImgAddr, &u32Addr);
+                    if (u32Size)
+                    {
+                        Hal_Patch_CopyXipContent(u32Addr, APS_XIP_MEM_RW_BASE, u32Size);
+                    }
+                }
+            }
+            else
+            {
+                tracer_drct_printf("Init XIP PSRAM fail\n");
+            }
+            break;
+        default: /* Invalid */
+            break;
+    }
+    /* Enable Cache when XIP enabled */
+    Hal_Cache_ClockEnable();
+    Hal_Cache_Enable(1);
+    Hal_Cache_PipelineEnable(0);
+    Hal_Cache_PrefetchBypass(1);
 }
 
 void Sys_DriverInit_patch(void)
@@ -284,11 +480,16 @@ void Sys_DriverInit_patch(void)
 
     if (Boot_CheckWarmBoot())
     {   /* In cold boot, the SPI0 already setup at boot_sequence */
-        // SPI_0 is QSPI
-        Hal_Sys_ApsClockGet(APS_CLK_GRP_SPI0, &u32ClkFreq);
-        Hal_Qspi_Init(SPI_SLAVE_0, u32ClkFreq/4);
-        Hal_Flash_ReleasePowerDown(SPI_IDX_0, SPI_SLAVE_0, 0);
-
+        
+        if (g_sSys_XipCfg.eXipMode == XIP_MODE_DISABLE)
+        {
+            Hal_Sys_ApsClockGet(APS_CLK_GRP_SPI0, &u32ClkFreq);
+            Hal_Qspi_Init(SPI_SLAVE_0, u32ClkFreq/4);
+            Hal_Flash_ReleasePowerDown(SPI_IDX_0, SPI_SLAVE_0, 0);
+            Hal_Flash_Init_Internal(SPI_IDX_0, SPI_SLAVE_0);
+            Hal_Cache_Enable(0);
+        }
+        
         ps_update_boot_gpio_int_status(Hal_Vic_GpioIntStatRead());
         Hal_Uart_WakeupResume(UART_IDX_DBG);
         Hal_Uart_WakeupResume(UART_IDX_0);
@@ -300,9 +501,11 @@ void Sys_DriverInit_patch(void)
     }
     else
     {
+        Hal_Sys_Xtal32DetectEnd();
         // Init flash on SPI 0
-        Hal_Flash_Init(SPI_IDX_0, SPI_SLAVE_0); // SPI_0 is for QSPI now
+        //Hal_Flash_Init(SPI_IDX_0, SPI_SLAVE_0); // SPI_0 is for QSPI now
         //Hal_Flash_Opcode_Config(SPI_SLAVE_0, 1); /* Setup Quad mode */
+        Hal_Flash_InitSemaphore(SPI_IDX_0);
 
         // FIM
         MwFim_Init(SPI_IDX_0, SPI_SLAVE_0);
@@ -315,6 +518,7 @@ void Sys_DriverInit_patch(void)
         MwFim_MsqFimLoadAll();
         /* [MSQ init start] ************************************************************* */
 
+        Hal_Sys_Xtal32CalcStart();
         // Set pin-mux
         Hal_SysPinMuxAppInit();
 

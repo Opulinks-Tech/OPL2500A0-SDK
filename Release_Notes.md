@@ -1,4 +1,31 @@
 ﻿## Release Version:
+SDK Package: MP_1.003.001
+Patch_Lib : 6635
+
+## Release Date: 2023/08/11
+
+## Function & Feature Update 
+1. Documents updating:
+   1.1 NONE
+   
+2. Tool version information and update:
+   2.1 NONE
+
+3. Demo update:
+   3.1 NONE
+   
+4. Examples update:
+   4.1 NONE
+   
+
+## Bug Fix List 
+- [MAC] Adjust backoff slot.
+- [WPAS] Update WPA supplicant GCC library
+- [WIFI MAC] Enhanced power saving mechanism to reduce power consumption
+- [Flash] Add polling busy after erase flash for XIP
+
+
+## Release Version:
 SDK Package: MP_1.002.006
 Patch_Lib : 6524
 

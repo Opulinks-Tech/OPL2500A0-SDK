@@ -88,7 +88,7 @@ XIP_RODATA const uint8_t g_u8RoData[DEMO_XIP_RODATA_LEN] = {
 Declaration of static Global Variables & Functions
 ***************************************************/
 // Sec 6: declaration of static global variable
-static E_PIN_MAIN_UART_MODE g_eAppMainUartMode = PIN_MAIN_UART_MODE_AT;
+static E_PIN_MAIN_UART_MODE g_eAppMainUartMode = HAL_PIN_MAIN_UART_MODE_PATCH;
 static osThreadId g_tAppThread_1;
 static osThreadId g_tAppThread_2;
 
@@ -129,12 +129,15 @@ C Functions
 *************************************************************************/
 void __Patch_EntryPoint(void)
 {
+    Main_PinMuxUpdate(); /* Init flash pin-mux first */
+    Sys_XipSetup(XIP_MODE_OTA_BUNDLE, SPI_SLAVE_0, 0);
+    
     // don't remove this code
     SysInit_EntryPoint();
 
 #ifdef SWITCH_TO_32K_RC
-    // Uncomment this function when the device is without 32k XTAL.
-    Sys_SwitchTo32kRC();
+    /* Not needs to setup, OPL2500 will auto detect 32k XTAL
+     * When not found 32k XTAL, it will use 32k RC */
 #endif 
     // update the pin mux
     Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
@@ -209,7 +212,7 @@ static void Main_HeapPatchInit(void)
 *   none
 *
 *************************************************************************/
-static void Main_PinMuxUpdate(void)
+FORCE_RAM_TEXT static void Main_PinMuxUpdate(void)
 {
     Hal_SysDisableAllTxPeriphPinmux();
     Hal_SysDisableAllRxPin();
@@ -298,7 +301,7 @@ static void Main_FlashLayoutUpdate(void)
 *************************************************************************/
 static void Main_MiscModulesInit(void)
 {
-    Sys_XipEnable(ENABLE);
+    
     //Hal_Wdt_Stop();   //disable watchdog here.
 }
 
@@ -466,7 +469,7 @@ XIP_TEXT static void Main_AppThread_2(void *argu)
         ptMsgPool = (S_MessageQ *)tEvent.value.p;
         
         // output the contect of message
-        printf("Hello world %d: %02X\n", ptMsgPool->ulCount, g_u8RoData[ptMsgPool->ulCount & (DEMO_XIP_RODATA_LEN-1)]);
+        printf("XIP OTA bundle %d: %02X\n", ptMsgPool->ulCount, g_u8RoData[ptMsgPool->ulCount & (DEMO_XIP_RODATA_LEN-1)]);
         
         // free the memory pool
         osPoolFree(g_tAppMemPoolId, ptMsgPool);

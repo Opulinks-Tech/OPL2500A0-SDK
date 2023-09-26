@@ -16,6 +16,8 @@
 #ifndef __AGENT_PATCH_H__
 #define __AGENT_PATCH_H__
 
+#include "data_flow.h"
+
 //typedef enum
 //{
 //    M3_MSG_RSP = 0,
@@ -26,7 +28,17 @@
 
 //    M3_MSG_MAX
 //} T_M3MsgType;
+
+typedef enum
+{
+    RF_EVT_COME = RF_EVT_MAX,
+
+    RF_EVT_MAX_NEW,
+} T_RfCmdEvtType_EXT;
+
 #define M3_MSG_TCA_SET      M3_MSG_MAX
 #define M3_MSG_PATCH_MAX    (M3_MSG_MAX + 1)
+
+void Agent_PatchInit(void);
 
 #endif //#ifndef __AGENT_PATCH_H__

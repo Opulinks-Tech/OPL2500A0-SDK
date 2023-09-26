@@ -43,8 +43,8 @@ Head Block of The File
 #include "mw_fim.h"
 #include "mw_fim_default_group01.h"
 #include "hal_pin.h"
-#include "hal_pin_config_project.h"
 #include "freertos_cmsis.h"
+#include "at_cmd_task.h"
 #include "at_cmd_common.h"
 #include "at_cmd_tcpip.h"
 #include "at_cmd_wifi.h"
@@ -52,6 +52,22 @@ Head Block of The File
 #include "at_cmd_property.h"
 #include "at_cmd_msg_ext.h"
 
+// #define BOARD_EVB                ( 1) /* Not support in this example */
+// #define BOARD_EVB_EXT_3_PINS     ( 2) /* Not support in this example */
+// #define BOARD_EVB_EXT_4_PINS     ( 3) /* Not support in this example */
+// #define BOARD_2500S_MODULE       (12) /* Not support in this example */
+#define BOARD_2500P_MODULE_V2    (22)
+#define BOARD_2500P_MODULE_V3    (23)
+
+#define BOARD_CURR               BOARD_2500P_MODULE_V3 /* <-- Config here */
+
+#if( BOARD_CURR == BOARD_2500P_MODULE_V3 )
+    #include "hal_pin_config_project_2500p_v3.h"
+#elif( BOARD_CURR == BOARD_2500P_MODULE_V2 )
+    #include "hal_pin_config_project_2500p_v2.h"
+#else
+    #error Not supported !!!
+#endif
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 
@@ -84,7 +100,7 @@ static void Main_PinMuxUpdate(void);
 static void Main_MiscModulesInit(void);
 static void Main_FlashLayoutUpdate(void);
 static void Main_AppInit_patch(void);
-
+static void at_cmd_switch_uart1_dbguart_patch(void);
 
 /***********
 C Functions
@@ -111,9 +127,15 @@ void __Patch_EntryPoint(void)
     SysInit_EntryPoint();
 
 #ifdef SWITCH_TO_32K_RC
-    // Uncomment this function when the device is without 32k XTAL.
-    Sys_SwitchTo32kRC();
-#endif 
+    /* Not needs to setup, OPL2500 will auto detect 32k XTAL
+     * When not found 32k XTAL, it will use 32k RC */
+#endif
+
+    // update the pin mux
+    Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
+
+    // update the flash layout
+    MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
 
     /* APS_HEAP_START and APS_HEAP_LENGTH are from scatter/linker file
      * When needs to change HEAP size, please modify scatter/linker file.
@@ -121,14 +143,11 @@ void __Patch_EntryPoint(void)
     osHeapAssign(APS_HEAP_START, APS_HEAP_LENGTH);
     Main_HeapPatchInit();
 
-    // update the pin mux
-    Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
-
     // update driver-level config
     Sys_MiscModulesInit = Main_MiscModulesInit;
 
-    // update the flash layout
-    MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
+    // update the switch AT UART / dbg UART function
+    at_cmd_switch_uart1_dbguart = at_cmd_switch_uart1_dbguart_patch;
 
     // application init
     Sys_AppInit = Main_AppInit_patch;
@@ -237,11 +256,12 @@ static void Main_PinMuxUpdate(void)
     Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_SIP_42);
     Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_SIP_43);
     Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_SIP_44);
-    
+
     Hal_Pin_UpdatePsramCfg();
 
     at_io01_uart_mode_set(HAL_PIN_MAIN_UART_MODE_PATCH);
 }
+
 /*************************************************************************
 * FUNCTION:
 *   Main_FlashLayoutUpdate
@@ -280,24 +300,27 @@ static void Main_MiscModulesInit(void)
     /*
      * Two steps to active ext-Pa mode:
      *
-     * Step 1) Config " hal_pin_config_project.h "
+     * Step 1) Config " hal_pin_config_project_XXX.h "
      *         1-1) Assigned three pins according to schematic:
      *                  [ TX_EN ]
      *                  [ RX_EN ]
      *                  [ LNA_EN ]
      *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
-     *         1-2) (Optional) (0xFF for not exist)
+     *         1-2) (Optional) ("0xFF" for 3-pins control case)
                     Assigned the pin : PwrCtrl according to schematic.
      *                  [ Pwr Ctrl ]
-     *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *              The pin is MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
      *
      * Step 2) Set Hal_ExtPa_Pin_Set(), default value was disable.
      *
      */
     if (!Boot_CheckWarmBoot())
     {
-        Hal_ExtPa_Pin_Set( 4, 6, 18, 0xFF); /* No PwrCtrl case */
-        // Hal_ExtPa_Pin_Set( 4, 6, 18, 5); /* PwrCtrl case */
+        #if( BOARD_CURR == BOARD_2500P_MODULE_V3 )
+            Hal_ExtPa_Pin_Set( 4, 6, 3, 5);
+        #elif( BOARD_CURR == BOARD_2500P_MODULE_V2 )
+            Hal_ExtPa_Pin_Set( 4, 6, 18, 0xFF);
+        #endif
 
         // Force Wifi pwr to ext-PA level
         uint8_t u8Temp = 0;
@@ -310,6 +333,50 @@ static void Main_MiscModulesInit(void)
     }
 
     //Hal_Wdt_Stop();   //disable watchdog here.
+}
+
+/*************************************************************************
+* FUNCTION:
+*   at_cmd_switch_uart1_dbguart_patch
+*
+* DESCRIPTION:
+*   switch the UART1 and dbg UART
+*
+* PARAMETERS
+*   none
+*
+* RETURNS
+*   none
+*
+*************************************************************************/
+extern E_PIN_MAIN_UART_MODE g_eAt_MainUartMode;
+static void at_cmd_switch_uart1_dbguart_patch(void)
+{
+    osSemaphoreWait(g_tSwitchuartSem, osWaitForever);
+
+    /* Set UART RX to high first in order not to receive wrong data */
+    Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_HIGH);
+    Hal_Pin_Config(PIN_TYPE_UART1_RXD_HIGH);
+
+    if(g_eAt_MainUartMode == PIN_MAIN_UART_MODE_AT)
+    {   /* Switch 0, 2 to debug UART */
+        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO0);
+        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO2|PIN_INMODE_IO2_PULL_UP);
+
+        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO22);
+        Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO1|PIN_INMODE_IO1_PULL_UP);
+    }
+    else
+    {   /* Switch 0, 2 to AT UART */
+        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO22);
+        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO1|PIN_INMODE_IO1_PULL_UP);
+
+        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO0);
+        Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO2|PIN_INMODE_IO2_PULL_UP);
+    }
+
+    g_eAt_MainUartMode = (E_PIN_MAIN_UART_MODE)!g_eAt_MainUartMode;
+    osSemaphoreRelease(g_tSwitchuartSem);
 }
 
 /*************************************************************************

@@ -52,6 +52,8 @@ int wifi_cmd_sta(int argc, char** argv)
 
     wifi_config.sta_config.sort_method = WIFI_SORT_AP_BY_SIGNAL;
 
+    wifi_config.sta_config.standard = WIFI_STD_11AX;
+
     int bits = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT0, 0, 1, 0);
     if (bits & CONNECTED_BIT0) {
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT0);
@@ -87,13 +89,13 @@ int wifi_cmd_query(int argc, char **argv)
 {
     wifi_ap_record_t ap_info = {0};
     struct netif *p_netif = NULL;
-    
+
     LOGI(TAG, "query wifi states");
     int bits = xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT0, 0, 1, 0);
     if (bits & CONNECTED_BIT0) {
         wifi_sta_get_ap_info(&ap_info);
         p_netif = netif_find("st1");
-        
+
         LOGI(TAG, "Wifi Connected.");
         LOGI(TAG, "AP SSID:  %s", ap_info.ssid);
         LOGI(TAG, "IP:       %s", ip4addr_ntoa(&p_netif->ip_addr.u_addr.ip4));
@@ -103,7 +105,7 @@ int wifi_cmd_query(int argc, char **argv)
     else {
         LOGI(TAG, "Disconnected");
     }
-    
+
     return 0;
 }
 
@@ -120,13 +122,13 @@ int wifi_cmd_data_rate(int argc, char **argv)
 {
     wifi_mac_data_rate_t data_rate;
     LOGI(TAG, "set wifi Tx fix data rate");
-    
+
     data_rate = (wifi_mac_data_rate_t)atoi(argv[1]);
     wifi_config_set_mac_tx_data_rate(data_rate);
-    
+
     LOGI(TAG, "current setting : %d", data_rate);
     LOGI(TAG, "  0:DTO, 1:1M, 2:2M, 3:5.5M, 4:11M, 12:RvR");
-    
+
     return 0;
 }
 
@@ -135,7 +137,7 @@ int wifi_cmd_hl_power(int argc, char **argv)
     int ret;
     uint8_t hl_level;
     LOGI(TAG, "set wifi transmit power level");
-    
+
     if (argc == 2) {
         hl_level = atoi(argv[1]);
         ret = sys_set_config_rf_power_level(hl_level);
@@ -144,14 +146,14 @@ int wifi_cmd_hl_power(int argc, char **argv)
             return -1;
         }
     }
-    
+
     sys_get_config_rf_power_level(&hl_level);
     LOGI(TAG, "current setting : %d", hl_level);
-    
+
     if (argc == 2) {
         common_cmd_reset(0, NULL);
     }
-    
+
     return 0;
 }
 
@@ -198,10 +200,10 @@ static int hwaddr_aton2(const char *txt, uint8_t *addr)
 int wifi_cmd_sta_mac_addr(int argc, char **argv)
 {
     uint8_t mac[6] = {0};
-    
+
     if (argc == 1) {
         wifi_config_get_mac_address(WIFI_MODE_STA, &mac[0]);
-        LOGI(TAG, "Mac addres : %02x:%02x:%02x:%02x:%02x:%02x", 
+        LOGI(TAG, "Mac addres : %02x:%02x:%02x:%02x:%02x:%02x",
                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
     else if (argc > 1) {
@@ -209,14 +211,14 @@ int wifi_cmd_sta_mac_addr(int argc, char **argv)
             LOGE(TAG, "Invalid parameter.");
             return -1;
         }
-        
+
         hwaddr_aton2(argv[2], mac);
-        
+
         if (mac_addr_set_config_source(MAC_IFACE_WIFI_STA, MAC_SOURCE_FROM_FLASH)) {
             LOGE(TAG, "Set Wifi mac cource failed.");
             return -1;
         }
-        
+
         if (wifi_config_set_mac_address(WIFI_MODE_STA, &mac[0])) {
             LOGE(TAG, "Set Wifi mac addres failed.");
             return -1;

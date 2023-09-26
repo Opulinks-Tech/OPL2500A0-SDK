@@ -100,11 +100,50 @@ static void ip_ready_callback_patch(struct netif *netif)
     }
 }
 
+void lwip_tcpip_init_patch(void)
+{
+	ip4_addr_t ipaddr, netmask, gw;
+	volatile s32_t tcpipdone = 0;
+    lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}};
+
+    tcpip_init(tcpip_init_done_cb, (void *) &tcpipdone);
+	while (!tcpipdone) {
+		sys_msleep(1);
+	}
+
+	LWIP_DEBUGF(NETIF_DEBUG, ("LwIP TCPIP thread is initialized.. \n"));
+
+    if (0 != tcpip_config_init(&tcpip_config)) {
+        LWIP_DEBUGF(NETIF_DEBUG, ("tcpip config init fail \n"));
+        return;
+    }
+
+    ipaddr = tcpip_config.sta_ip;
+    netmask = tcpip_config.sta_mask;
+    gw = tcpip_config.sta_gw;
+
+	/* Add netif interface for OPL2500, wlan interface */
+	if (!netif_add(&netif, &ipaddr, &netmask, &gw, NULL, ethernetif_init, tcpip_input)) {
+		LWIP_ASSERT("Net interface failed to initialize\r\n", 0);
+	}
+	netif_set_default(&netif);
+
+#ifdef WIFI_RX_DATA_USE_IPC
+    wifi_mac_register_rxcb(&netif, lwip_wlan_sta_input);
+#endif
+
+	netif_set_up(&netif);
+
+    //netif_set_link_callback(&netif, lwip_netif_link_irq);
+    //netif_set_status_callback(&netif, lwip_netif_status_irq);
+}
+
 /*-------------------------------------------------------------------------------------
  * Interface assignment
  *------------------------------------------------------------------------------------*/
 void lwip_load_interface_lwip_helper_patch(void)
 {
     ip_ready_callback = ip_ready_callback_patch;
+    lwip_tcpip_init   = lwip_tcpip_init_patch;
 }
 

@@ -190,10 +190,12 @@ void Hal_ExtPa_Pin_Set(uint8_t u8Gpio_TxEn, uint8_t u8Gpio_RxEn, uint8_t u8Gpio_
         g_u8Gpio_TxEn  = u8Gpio_TxEn;
         g_u8Gpio_RxEn  = u8Gpio_RxEn;
         g_u8Gpio_LnaEn = u8Gpio_LnaEn;
+        if(g_u8Gpio_PwrCtrl != 0xFF)
+            Hal_Gpio_SleepIoUsrCtrlSet( (E_GpioIdx_t)g_u8Gpio_PwrCtrl, SLEEP_USER_CTRL_OFF);
+
         if(u8Gpio_PwrCtrl > GPIO_IDX_OUT_MAX)
         {
             g_u8Gpio_PwrCtrl = 0xFF;
-            Hal_Gpio_SleepIoUsrCtrlSet( (E_GpioIdx_t)u8Gpio_PwrCtrl, SLEEP_USER_CTRL_OFF);
             Hal_Pin_ConfigSet = Hal_Pin_ConfigSet_epa3pins;
             Hal_Pin_Config    = Hal_Pin_Config_epa3pins;
         }else{

@@ -84,7 +84,7 @@ void Hal_Auxadc_PatchInit(void)
     // Hal_Aux_AdcValueGet         = Hal_Aux_AdcValueGet_ts;
     // Internal: Calibration
     // Hal_Aux_AdcCal_LoadDef      = Hal_Aux_AdcCal_LoadDef_impl;
-    // Hal_Aux_AdcCal_LoadOtp      = Hal_Aux_AdcCal_LoadOtp_impl;
+    Hal_Aux_AdcCal_LoadOtp      = Hal_Aux_AdcCal_LoadOtp_patch;
     Hal_Aux_AdcCal_LoadFlash    = Hal_Aux_AdcCal_LoadFlash_patch;
     // Hal_Aux_AdcMiniVolt_Convert = Hal_Aux_AdcMiniVolt_Convert_impl;
 
@@ -102,6 +102,51 @@ void Hal_Auxadc_PatchInit(void)
     // Hal_Aux_Adc_AlwaysOn_Set    = Hal_Aux_Adc_AlwaysOn_Set_impl;
 
     // Hal_Aux_LseRegressUpdate    = Hal_Aux_LseRegressUpdate_impl;
+}
+
+/*************************************************************************
+* FUNCTION:
+*   Hal_Aux_AdcCal_LoadOtp
+*
+* DESCRIPTION:
+*   Load default setting form OTP
+*
+* PARAMETERS
+*   none
+*
+* RETURNS
+*   1. HAL_AUX_OK   : success
+*   2. HAL_AUX_FAIL : fail
+*
+*************************************************************************/
+#define FT_TO_CURR_OFFSET    100
+uint32_t Hal_Aux_AdcCal_LoadOtp_patch( void )
+{
+    uint8_t u8Idx = 0;
+    uint32_t u32Otp_temp;
+    S_AuxadcCal_t stOtpRef[5];
+
+    for(u8Idx = 0; u8Idx<5; u8Idx++)
+    {
+        u32Otp_temp = reg_read(0x30002140 + 4*u8Idx);
+
+        stOtpRef[ u8Idx ].u16MiniVolt = (u8Idx + 1)*500 - FT_TO_CURR_OFFSET;
+        stOtpRef[ u8Idx ].u16RawData = u32Otp_temp;
+    }
+
+    if(  stOtpRef[ 0 ].u16RawData ==  stOtpRef[ 4 ].u16RawData )
+        return HAL_AUX_FAIL;
+
+    sAuxadcCalTable.stIntSrc[ 0 ].u16MiniVolt = stOtpRef[ 0 ].u16MiniVolt;
+    sAuxadcCalTable.stIntSrc[ 0 ].u16RawData  = stOtpRef[ 0 ].u16RawData;
+    
+    sAuxadcCalTable.stIntSrc[ 1 ].u16MiniVolt = stOtpRef[ 4 ].u16MiniVolt;
+    sAuxadcCalTable.stIntSrc[ 1 ].u16RawData  = stOtpRef[ 4 ].u16RawData;
+    
+    // Updated slope and offset
+    Hal_Aux_LseRegressUpdate(5, stOtpRef);
+
+    return HAL_AUX_OK;
 }
 
 /*************************************************************************

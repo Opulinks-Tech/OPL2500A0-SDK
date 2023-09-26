@@ -5086,6 +5086,7 @@
 0x00401d54 D sys_cfg_auxadc_req
 0x00401d58 D sys_cfg_auxadc_rsp
 0x00401d5c D osMemPoolFailLog
+0x00401e48 D g_xaMemPartPCB
 0x00402540 D g_sExceptionInfo
 0x00402550 D g_taIpcSemWifiApsTx
 0x00402564 D g_taIpcWifiEntryCbBody

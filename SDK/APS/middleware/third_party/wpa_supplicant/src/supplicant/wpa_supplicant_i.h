@@ -69,6 +69,7 @@ struct wpa_supplicant {
 #endif
 
     int debug_log_level;
+    uint8_t  standard;
     uint16_t aid;
     unsigned int bss_update_idx;
     unsigned int bss_next_id;

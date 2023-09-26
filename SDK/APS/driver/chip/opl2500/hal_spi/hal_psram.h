@@ -68,6 +68,6 @@ uint32_t Hal_Psram_Opcode_Config_impl(uint8_t u8UseQuadMode);
 uint32_t Hal_Psram_DeviceId_impl(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t *pu32Mfid, uint32_t *pu32Kgd);
 uint8_t Hal_Psram_RxSampleDelay_Set_impl(E_SpiSlave_t eSlvIdx);
 uint32_t Hal_Psram_Dma_Access_impl(E_SpiSlave_t eSlvIdx, E_DMA_CHANNEL eChannel, uint32_t u32SrcAddr, uint32_t u32DstAddr, uint32_t u32Size);
-
+#include "hal_psram_patch.h"
 #endif
 

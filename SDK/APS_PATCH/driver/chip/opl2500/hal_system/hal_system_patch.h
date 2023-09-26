@@ -37,14 +37,33 @@ extern "C" {
  *                          Definitions and Macros
  *************************************************************************
  */
+/* Spare register usage 
+ * [AOS]
+ * SPARE0@0x10C: IPC sync usage
+ * SPARE1@0x124: HW use
+ * SPARE2@0x12C: For further use
+ * SPARE3@0x130: For further use
+ * [SYS]
+ * SPARE @0x264: XTAL frequency
+ * SPARE1@0x268: APS boot debug tag
+ * SPARE2@0x26C: MSQ boot debug tag
+ * SPARE3@0x270: [Patch] System status
+ * SPARE4@0x274: [Patch] MSQ hard fault MSP
+ * SPARE5@0x278: [Patch] OTA status
+ * SPARE6@0x27C:
+ * SPARE7@0x280:
+ * SPARE8@0x284:
+ */
+    
 #define Hal_Sys_RetRamTurnOff   Hal_Sys_RetRamTurnOff_patch
     
     
 #define SYSTEM_SPARE_REG_SYSTEM_STATUS                  (SYS->SPARE3)
 #define HAL_SYS_SET_SYSTEM_STATUS(bitpos, bitvalue)     (BIT_SET(SYSTEM_SPARE_REG_SYSTEM_STATUS, (bitpos), (bitvalue)?1:0))
-    
+
 #define SYSTEM_SPARE_REG_MSQ_MSP                        (SYS->SPARE4)
-    
+#define SYSTEM_SPARE_REG_OTA_STATUS                     (SYS->SPARE5)
+
 #define SYSTEM_STATUS_XTAL_ALIGNED_BIT                  (0UL)
 #define SYSTEM_STATUS_XTAL_ALIGNED_TO_MHZ_DONE          1
 #define SYSTEM_STATUS_XTAL_ALIGNED_KEPT                 0

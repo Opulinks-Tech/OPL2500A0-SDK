@@ -85,6 +85,7 @@ Declaration of static Global Variables & Functions
 void Hal_Auxadc_PatchInit(void);
 
 // Calibration data
+uint32_t Hal_Aux_AdcCal_LoadOtp_patch( void );
 uint32_t Hal_Aux_AdcCal_LoadFlash_patch( void );
 uint32_t Hal_Aux_AdcCal_EraseFlash( void );
 uint32_t Hal_Aux_AdcCal_StoreFlash( void );

@@ -40,6 +40,7 @@ extern "C" {
 
 #define MAX_NUM_MEM_POOL        8
 
+#define PHEAP_MAGIC_NUM    0x90CBD1C4
 /*
  *************************************************************************
  *                          Typedefs and Structures
@@ -52,12 +53,14 @@ typedef struct os_memory_def
 } osMemoryDef_t;
 
 
+
+
+typedef void* (*T_osPHeapAllocateFp)(uint32_t ulWantedSize);
 /*
  *************************************************************************
  *                          Public Variables
  *************************************************************************
  */
-
 
 /*
  *************************************************************************
@@ -66,6 +69,7 @@ typedef struct os_memory_def
  */
 void osHwPatch(void);
 void osPatchInit(void);
+void osPHeapPatchInit(void);
 /**
  * @brief Update partition memory pool configuration
  * @warning Call after osHeapAssign. This function will checking the HEAP size enough or not
@@ -76,6 +80,22 @@ void osPatchInit(void);
  * @retval osErrorOS fail
  */
 osStatus osMemoryPoolUpdate(osMemoryDef_t *psMemTable);
+
+/* Enable "malloc" to use PSRAM heap (PHeap)
+ * When enable PHeap malloc mix mode. "malloc" will allocate buffer in the following order
+ *   1. PMP (partiion memory pool, on RAM)
+ *   2. VMP (variable memory pool, on RAM)
+ *   3. PHeap (PSRAM heap, on external PSRAM)
+ *
+ * "mallocPHeap" can allocate buffer from PSRAM either mix mode enable or not 
+ * "free" can support free from RAM or PSRAM
+ */
+void osMemoryPHeapMallocMixModeEn(uint32_t u32Enable);
+void *mallocPHeap(unsigned int size);
+void vPortPHeapRegionInit(uint8_t* pucAddr, uint32_t ulSize);
+
+void vPortInfoPHeap( void );
+void vPortBlockInfoPHeap(void);
 
 #ifdef __cplusplus
 }

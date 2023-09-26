@@ -411,5 +411,5 @@ C Functions
 ***********/
 // Sec 8: C Functions
 
-
+#include "hal_spi_patch.h"
 #endif /* __HAL_SPI_H__ */

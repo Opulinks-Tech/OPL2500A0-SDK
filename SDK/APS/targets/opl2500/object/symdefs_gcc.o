@@ -5085,6 +5085,7 @@ sys_cfg_auxadc_set = 0x00401d50;
 sys_cfg_auxadc_req = 0x00401d54;
 sys_cfg_auxadc_rsp = 0x00401d58;
 osMemPoolFailLog = 0x00401d5c;
+g_xaMemPartPCB = 0x00401e48;
 g_sExceptionInfo = 0x00402540;
 g_taIpcSemWifiApsTx = 0x00402550;
 g_taIpcWifiEntryCbBody = 0x00402564;

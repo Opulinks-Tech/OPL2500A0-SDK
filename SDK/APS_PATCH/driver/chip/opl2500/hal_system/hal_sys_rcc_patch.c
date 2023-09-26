@@ -25,7 +25,10 @@
 #include "hal_system.h"
 #include "hal_i2c.h"
 #include "hal_wdt.h"
-
+#include "hal_spi.h"
+#include "hal_qspi.h"
+#include "ps.h"
+#include "boot_sequence.h"
 /*
  *************************************************************************
  *                          Definitions and Macros
@@ -110,6 +113,13 @@
 #define HAL_SLP_CLK_CAM_XVCLK_SEL_MSK   (AOS_CAM_XVCLK_SEL_CAM_XVCLK_EN)
 #define HAL_SLP_CLK_CAM_XVCLK_SEL_SET_VALUE     (0)
 
+
+
+#define DET_XTAL32_EXIST_CYCLE          (4)         /* 32k xtal cycles */
+#define DET_XTAL32_CYCLE                (64)        /* 32k xtal cycles */
+#define DET_XTAL32_TIMEOUT              0x8000
+
+
 /*
  *************************************************************************
  *                          Typedefs and Structures
@@ -141,6 +151,12 @@ void Hal_Sys_ApsClkChangeApply_patch(void);
 uint32_t Hal_Sys_ApsClkMmFactorSet_patch(uint32_t u32Factor);
 void Hal_Sys_WakeupClkResume_patch(void);
 void Hal_Sys_SleepClkSetup_patch(void);
+uint32_t Hal_Sys_ApsClockUpdate_patch(E_ApsClkGrp_t eApsClkGrp, uint32_t u32ClkFreq);
+uint32_t Hal_Sys_Spi0SrcSelect_patch(E_ApsClkSpi0Src_t eSrc, E_ApsClkSpi0Divn_t eDiv);
+uint32_t Hal_Sys_Spi1SrcSelect_patch(E_ApsClkSpi1Src_t eSrc, E_ApsClkSpi1Divn_t eDiv);
+uint32_t Hal_Sys_Spi2SrcSelect_patch(E_ApsClkSpi2Src_t eSrc, E_ApsClkSpi2Divn_t eDiv);
+uint32_t Hal_Sys_Spi3SrcSelect_patch(E_ApsClkSpi3Src_t eSrc, E_ApsClkSpi3Divn_t eDiv);
+uint32_t Hal_Sys_CamXvClkSrcSelect_patch(E_ApsClkCamXvClkSrc_t eSrc, E_ApsClkCamXvCLKDivn_t eDiv);
 /*
  *************************************************************************
  *                          Public Variables
@@ -148,6 +164,7 @@ void Hal_Sys_SleepClkSetup_patch(void);
  */
 
 extern S_APS_CLK_FREQ g_sApsClkFreq;
+S_APS_CLK_FREQ_EXT g_sApsClkFreqExt = {150000000};
 
 /*
  *************************************************************************
@@ -182,9 +199,102 @@ void Hal_Sys_RccPatchInit(void)
     Hal_Sys_ApsClkMmFactorSet = Hal_Sys_ApsClkMmFactorSet_patch;
     Hal_Sys_WakeupClkResume = Hal_Sys_WakeupClkResume_patch;
     Hal_Sys_SleepClkSetup = Hal_Sys_SleepClkSetup_patch;
+    Hal_Sys_ApsClockUpdate = Hal_Sys_ApsClockUpdate_patch;
+    Hal_Sys_Spi0SrcSelect = Hal_Sys_Spi0SrcSelect_patch;
+    Hal_Sys_Spi1SrcSelect = Hal_Sys_Spi1SrcSelect_patch;
+    Hal_Sys_Spi2SrcSelect = Hal_Sys_Spi2SrcSelect_patch;
+    Hal_Sys_Spi3SrcSelect = Hal_Sys_Spi3SrcSelect_patch;
+    Hal_Sys_CamXvClkSrcSelect = Hal_Sys_CamXvClkSrcSelect_patch;
 }
 
 
+/**
+ * @brief Hal_Sys_DetectXtal32Enable
+ *        Using XTAL detection to detect 32k XTAL exist or not
+ */
+void Hal_Sys_Xtal32DetectStart(void)
+{
+    uint32_t Det32kTimeout;uint32_t XtalFreq;
+            
+    /* Setup RTC source to 32k XTAL */
+    
+    AOS->OSC_SEL = AOS_OSC_SEL_32K_OSC_SEL | AOS_OSC_SEL_RTC_EN;
+    Hal_Sys_ApsClockGet(APS_CLK_GRP_XTAL, &XtalFreq);
+    Det32kTimeout = DET_XTAL32_EXIST_CYCLE * XtalFreq / CLK_SRC_FREQ_32K_XTAL;
+    
+    /* Start to detect */
+    SYS->DET_XTAL = (Det32kTimeout << SYS_DET_XTAL_PRE_DET_32K_TO_CNT_Pos) |
+                    (DET_XTAL32_CYCLE << SYS_DET_XTAL_DET_32K_CNT_Pos) |
+                    SYS_DET_XTAL_DET_XTAL_CLK_EN |
+                    SYS_DET_XTAL_DET_XTAL_EN;
+}
+
+
+void Hal_Sys_Xtal32DetectEnd(void)
+{
+    uint32_t u32Timeout = DET_XTAL32_TIMEOUT;
+    S_RTC_CLK_CFG sRtcCfg;
+
+    while(--u32Timeout)
+    {
+        if (SYS->DET_XTAL_STS & SYS_DET_XTAL_STS_PRE_DET_32K_DONE)
+            break;
+    }
+    
+    if (!u32Timeout || !(SYS->DET_XTAL_STS & SYS_DET_XTAL_STS_PRE_DET_32K_ACTIVE))
+    {   /* Cannot get 32k XTAL, select 32k RC as RTC source */
+        sRtcCfg.eRtcSrc = MSQ_CLK_RTC_ON_LPO;
+        sRtcCfg.eLpoCtrl = CLK_LPO_CTRL_BY_SEQ;
+        sRtcCfg.eXtal32kCtrl = XTAL_32k_OFF;
+    }
+    else
+    {   /* No 32k XTAL */
+        sRtcCfg.eRtcSrc = MSQ_CLK_RTC_ON_32K_XTAL;
+        sRtcCfg.eLpoCtrl = CLK_LPO_CTRL_OFF;
+        sRtcCfg.eXtal32kCtrl = XTAL_32k_BY_SEQ;
+        Boot_RtcSelect32kRc();
+    }
+    SYS->DET_XTAL &= ~(SYS_DET_XTAL_DET_XTAL_EN | SYS_DET_XTAL_DET_XTAL_CLK_EN);
+    __ISB();
+    sRtcCfg.u8XtalGm = 0xF;
+    sRtcCfg.u8XtalCap = 0x0;
+    Hal_Sys_RtcClkCfg(&sRtcCfg);
+}
+
+void Hal_Sys_Xtal32CalcStart(void)
+{
+    /* Start to detect */
+    SYS->DET_XTAL = (DET_XTAL32_CYCLE << SYS_DET_XTAL_DET_32K_CNT_Pos) |
+                        SYS_DET_XTAL_DET_XTAL_CLK_EN |
+                        SYS_DET_XTAL_DET_XTAL_EN |
+                        SYS_DET_XTAL_PRE_DET_32K_BYPS;
+}
+
+void Hal_Sys_Xtal32CalcEnd(void)
+{
+    double tick32;
+    uint32_t XtalCnt=0;
+    uint32_t XtalFreq=0;
+    uint32_t u32Timeout = DET_XTAL32_TIMEOUT;
+    
+    while (--u32Timeout)
+    {   /* Not reset timeout value, continue counting */
+        if (SYS->DET_XTAL_STS & (SYS_DET_XTAL_STS_DET_XTAL_DONE | SYS_DET_XTAL_STS_DET_XTAL_DISTORTION))
+        {
+            break;
+        }
+    }
+    if (u32Timeout && !(SYS->DET_XTAL_STS & SYS_DET_XTAL_STS_DET_XTAL_DISTORTION))
+    {
+        Hal_Sys_ApsClockGet(APS_CLK_GRP_XTAL, &XtalFreq);
+        XtalCnt = (SYS->DET_XTAL_STS & SYS_DET_XTAL_STS_DET_XTAL_CNT_Msk) >> SYS_DET_XTAL_STS_DET_XTAL_CNT_Pos;
+        
+        tick32 = (double)XtalCnt / (DET_XTAL32_CYCLE * ((XtalFreq + 1000000/2) / 1000000));
+        ps_update_xtal32_tick_value(tick32);
+    }
+    SYS->DET_XTAL &= ~(SYS_DET_XTAL_DET_XTAL_EN | SYS_DET_XTAL_DET_XTAL_CLK_EN);
+    
+}
 
 /*
  *************************************************************************
@@ -454,6 +564,8 @@ uint32_t Hal_Sys_VarSrcDiv_Set( E_ApsVarSrc_t eVarsrc, uint8_t u8Div )
                    ((u8Div - 16) << AOS_CLK150M_CTRL_CLK_150M_VAR_SEL_Pos);
     }
     reg_write(u32Addr, u32Value);
+    
+    g_sApsClkFreqExt.u32Var150Clk = DIV_ROUND( 2442, u8Div )*1000*1000; // Rounded in MHz level
     return RESULT_SUCCESS;
 }
 
@@ -651,4 +763,327 @@ void Hal_Sys_SleepClkSetup_patch(void)
     AOS->SPI_CLK_SEL = (AOS->SPI_CLK_SEL & ~HAL_SLP_CLK_SPI_CLK_SEL_MSK) | HAL_SLP_CLK_SPI_CLK_SEL_SET_VALUE;
     AOS->APS_DM_CLK_SEL = (AOS->APS_DM_CLK_SEL & ~HAL_SLP_CLK_APS_DM_CLK_SEL_MSK) | HAL_SLP_CLK_APS_DM_CLK_SEL_SET_VALUE;
     AOS->CAM_XVCLK_SEL = (AOS->CAM_XVCLK_SEL & ~HAL_SLP_CLK_APS_DM_CLK_SEL_MSK) | HAL_SLP_CLK_CAM_XVCLK_SEL_SET_VALUE;
+}
+
+/**
+ * @brief Hal_Sys_ApsClockUpdate
+ *        Updated corresponding clock golbal values
+ * @param eApsClkGrp[in] The target clock to be updated
+ * @param u32ClkFreq[in] The clock frequency
+ * @return Setup status ::E_RESULT_COMMON
+ * @retval ::RESULT_SUCCESS Setup success
+ * @retval ::RESULT_FAIL Setup fail
+ */
+uint32_t Hal_Sys_ApsClockUpdate_patch(E_ApsClkGrp_t eApsClkGrp, uint32_t u32ClkFreq)
+{
+    uint32_t result;
+    result = Hal_Sys_ApsClockUpdate_impl(eApsClkGrp, u32ClkFreq);
+    if (result == RESULT_FAIL)
+        return result;
+    
+    
+    if (eApsClkGrp == APS_CLK_GRP_SYS_SRC)
+    {
+        if ( ((AOS->APS_CLK_SEL & AOS_APS_CLK_SEL_APS_SRC_CLK_SEL_Msk) == (APS_CLK_SYS_SRC_150_VAR << AOS_APS_CLK_SEL_APS_SRC_CLK_SEL_Pos))
+            && ((AOS->APS_CLK_SEL & AOS_APS_CLK_SEL_APS_CLK_SRC_DYN_SEL_Msk) == 0) )
+        {   /* Source = 150_VAR */
+            if ((AOS->SPI_CLK_SEL & AOS_SPI_CLK_SEL_SPI0_CLKSEL_Msk) == (APS_CLK_SPI0_SRC_150M_VAR << AOS_SPI_CLK_SEL_SPI0_CLKSEL_Pos))
+            {   /* SPI0 clock is from 150_VAR */
+                g_sApsClkFreq.u32Spi0Clk = u32ClkFreq;
+            }
+            
+            if ((AOS->SPI_CLK_SEL & AOS_SPI_CLK_SEL_SPI1_CLK_SEL_Msk) == (APS_CLK_SPI1_SRC_150M_VAR << AOS_SPI_CLK_SEL_SPI1_CLK_SEL_Pos))
+            {   /* SPI1 clock is from 150_VAR */
+                g_sApsClkFreq.u32Spi1Clk = u32ClkFreq;
+            }
+            
+            if ((AOS->SPI_CLK_SEL & AOS_SPI_CLK_SEL_SPI2_CLK_SEL_Msk) == (APS_CLK_SPI2_SRC_150M_VAR << AOS_SPI_CLK_SEL_SPI2_CLK_SEL_Pos))
+            {   /* SPI2 clock is from 150_VAR */
+                g_sApsClkFreq.u32Spi2Clk = u32ClkFreq;
+            }
+            
+            if ((AOS->SPI_CLK_SEL & AOS_SPI_CLK_SEL_SPI3_CLK_SEL_Msk) == (APS_CLK_SPI3_SRC_150M_VAR << AOS_SPI_CLK_SEL_SPI3_CLK_SEL_Pos))
+            {   /* SPI3 clock is from 150_VAR */
+                g_sApsClkFreq.u32Spi3Clk = u32ClkFreq;
+            }
+            
+            if ((AOS->CAM_XVCLK_SEL & AOS_CAM_XVCLK_SEL_CAM_XVCLKSEL_Msk) == (APS_CLK_CAM_XVCLK_SRC_150M_VAR << AOS_CAM_XVCLK_SEL_CAM_XVCLKSEL_Pos))
+            {   /* CamXv clock is from 150_VAR */
+                g_sApsClkFreq.u32CamXvClk = u32ClkFreq;
+            }
+        }
+        
+    }
+    
+    return RESULT_SUCCESS;
+}
+
+/**
+ * @brief Hal_Sys_Spi0SrcSelect
+ *        SPI0 clock source select
+ * @param eSrc[in] Select the source of SPI0 clock tree. Refer to ::E_ApsClkSpi0Src_t
+ *                  APS_CLK_SPI0_SRC_RC           
+ *                  APS_CLK_SPI0_SRC_XTAL         
+ *                  APS_CLK_SPI0_SRC_150M_VAR     
+ *                  APS_CLK_SPI0_SRC_DECI_160M_BB 
+ *                  APS_CLK_SPI0_SRC_D1_200M      
+ *                  APS_CLK_SPI0_SRC_EXTERNAL     
+ * @param eDiv[in] Select the source divider of SPI0 clock tree. Refer to ::E_ApsClkSpi0Divn_t
+ *                  APS_CLK_SPI0_DIV_1 
+ *                  APS_CLK_SPI0_DIV_2 
+ *                  APS_CLK_SPI0_DIV_3 
+ *                  APS_CLK_SPI0_DIV_4 
+ * @return Setup status ::E_RESULT_COMMON
+ * @retval ::RESULT_SUCCESS Setup success
+ * @retval ::RESULT_FAIL Setup fail
+ */
+uint32_t Hal_Sys_Spi0SrcSelect_patch(E_ApsClkSpi0Src_t eSrc, E_ApsClkSpi0Divn_t eDiv)
+{
+    uint32_t u32Clk;
+    
+    switch(eSrc)
+    {
+        case APS_CLK_SPI0_SRC_RC:
+            u32Clk = CLK_SRC_FREQ_RC;
+            break;
+        case APS_CLK_SPI0_SRC_XTAL:
+            u32Clk = g_sApsClkFreq.u32XtalClk;
+            break;
+        case APS_CLK_SPI0_SRC_150M_VAR:
+            u32Clk = g_sApsClkFreqExt.u32Var150Clk;
+            break;
+        case APS_CLK_SPI0_SRC_DECI_160M_BB:
+            u32Clk = CLK_SRC_FREQ_160M_BB;
+            break;;
+        case APS_CLK_SPI0_SRC_D1_200M:
+            u32Clk = CLK_SRC_FREQ_D1_200M;
+            break;
+        case APS_CLK_SPI0_SRC_EXTERNAL:
+            u32Clk = g_sApsClkFreq.u32ExtApsClk;
+            break;
+        default:
+            return RESULT_FAIL;
+    }
+    u32Clk /= APS_CLK_SPI0_DIVN_GET(eDiv);
+    
+    AOS->SPI_CLK_SEL = (AOS->SPI_CLK_SEL & ~(AOS_SPI_CLK_SEL_SPI0_CLKSEL_Msk | AOS_SPI_CLK_SEL_SPI0_REFCLK_DIVN_Msk) ) | 
+                        (eSrc << AOS_SPI_CLK_SEL_SPI0_CLKSEL_Pos) | eDiv;
+    
+    Hal_Sys_ApsClockUpdate(APS_CLK_GRP_SPI0, u32Clk);
+    
+    Hal_Qspi_Divider_Update();
+    
+    return RESULT_SUCCESS;
+}
+
+/**
+ * @brief Hal_Sys_Spi1SrcSelect
+ *        SPI1 clock source select
+ * @param eSrc[in] Select the source of SPI1 clock tree. Refer to ::E_ApsClkSpi1Src_t
+ *                  APS_CLK_SPI1_SRC_RC           
+ *                  APS_CLK_SPI1_SRC_XTAL         
+ *                  APS_CLK_SPI1_SRC_150M_VAR     
+ *                  APS_CLK_SPI1_SRC_DECI_160M_BB 
+ *                  APS_CLK_SPI1_SRC_EXTERNAL     
+ * @param eDiv[in] Select the source divider of SPI1 clock tree. Refer to ::E_ApsClkSpi1Divn_t
+ *                  APS_CLK_SPI1_DIV_1 
+ *                  APS_CLK_SPI1_DIV_2 
+ *                  APS_CLK_SPI1_DIV_3 
+ *                  APS_CLK_SPI1_DIV_4 
+ * @return Setup status ::E_RESULT_COMMON
+ * @retval ::RESULT_SUCCESS Setup success
+ * @retval ::RESULT_FAIL Setup fail
+ */
+uint32_t Hal_Sys_Spi1SrcSelect_patch(E_ApsClkSpi1Src_t eSrc, E_ApsClkSpi1Divn_t eDiv)
+{
+    uint32_t u32Clk;
+    
+    switch(eSrc)
+    {
+        case APS_CLK_SPI1_SRC_RC:
+            u32Clk = CLK_SRC_FREQ_RC;
+            break;
+        case APS_CLK_SPI1_SRC_XTAL:
+            u32Clk = g_sApsClkFreq.u32XtalClk;
+            break;
+        case APS_CLK_SPI1_SRC_150M_VAR:
+            u32Clk = g_sApsClkFreqExt.u32Var150Clk;
+            break;
+        case APS_CLK_SPI1_SRC_DECI_160M_BB:
+            u32Clk = CLK_SRC_FREQ_160M_BB;
+            break;;
+        case APS_CLK_SPI1_SRC_EXTERNAL:
+            u32Clk = g_sApsClkFreq.u32ExtApsClk;
+            break;
+        default:
+            return RESULT_FAIL;
+    }
+    u32Clk /= APS_CLK_SPI1_DIVN_GET(eDiv);
+    
+    AOS->SPI_CLK_SEL = (AOS->SPI_CLK_SEL & ~(AOS_SPI_CLK_SEL_SPI1_CLK_SEL_Msk | AOS_SPI_CLK_SEL_SPI1_SCLK_DIV_Msk) ) | 
+                        (eSrc << AOS_SPI_CLK_SEL_SPI1_CLK_SEL_Pos) | eDiv;
+    
+    Hal_Sys_ApsClockUpdate(APS_CLK_GRP_SPI1, u32Clk);
+    
+    Hal_Spi_DividerUpdate(SPI_IDX_1);
+    
+    return RESULT_SUCCESS;
+}
+
+/**
+ * @brief Hal_Sys_Spi2SrcSelect
+ *        SPI2 clock source select
+ * @param eSrc[in] Select the source of SPI2 clock tree. Refer to ::E_ApsClkSpi2Src_t
+ *                  APS_CLK_SPI2_SRC_RC           
+ *                  APS_CLK_SPI2_SRC_XTAL         
+ *                  APS_CLK_SPI2_SRC_150M_VAR     
+ *                  APS_CLK_SPI2_SRC_DECI_160M_BB 
+ *                  APS_CLK_SPI2_SRC_EXTERNAL     
+ * @param eSDiv[in] Select the source divider of SPI2 clock tree. Refer to ::E_ApsClkSpi2Divn_t
+ *                  APS_CLK_SPI2_DIV_1 
+ *                  APS_CLK_SPI2_DIV_2 
+ *                  APS_CLK_SPI2_DIV_3 
+ *                  APS_CLK_SPI2_DIV_4 
+ * @return Setup status ::E_RESULT_COMMON
+ * @retval ::RESULT_SUCCESS Setup success
+ * @retval ::RESULT_FAIL Setup fail
+ */
+uint32_t Hal_Sys_Spi2SrcSelect_patch(E_ApsClkSpi2Src_t eSrc, E_ApsClkSpi2Divn_t eDiv)
+{
+    uint32_t u32Clk;
+    
+    switch(eSrc)
+    {
+        case APS_CLK_SPI2_SRC_RC:
+            u32Clk = CLK_SRC_FREQ_RC;
+            break;
+        case APS_CLK_SPI2_SRC_XTAL:
+            u32Clk = g_sApsClkFreq.u32XtalClk;
+            break;
+        case APS_CLK_SPI2_SRC_150M_VAR:
+            u32Clk = g_sApsClkFreqExt.u32Var150Clk;
+            break;
+        case APS_CLK_SPI2_SRC_DECI_160M_BB:
+            u32Clk = CLK_SRC_FREQ_160M_BB;
+            break;;
+        case APS_CLK_SPI2_SRC_EXTERNAL:
+            u32Clk = g_sApsClkFreq.u32ExtApsClk;
+            break;
+        default:
+            return RESULT_FAIL;
+    }
+    u32Clk /= APS_CLK_SPI2_DIVN_GET(eDiv);
+    
+    AOS->SPI_CLK_SEL = (AOS->SPI_CLK_SEL & ~(AOS_SPI_CLK_SEL_SPI2_CLK_SEL_Msk | AOS_SPI_CLK_SEL_SPI2_SCLK_DIV_Msk) ) | 
+                        (eSrc << AOS_SPI_CLK_SEL_SPI2_CLK_SEL_Pos) | eDiv;
+    
+    Hal_Sys_ApsClockUpdate(APS_CLK_GRP_SPI2, u32Clk);
+    
+    return RESULT_SUCCESS;
+}
+
+/**
+ * @brief Hal_Sys_Spi3SrcSelect
+ *        SPI3 clock source select
+ * @param eSrc[in] Select the source of SPI3 clock tree. Refer to ::E_ApsClkSpi3Src_t
+ *                  APS_CLK_SPI3_SRC_RC           
+ *                  APS_CLK_SPI3_SRC_XTAL         
+ *                  APS_CLK_SPI3_SRC_150M_VAR     
+ *                  APS_CLK_SPI3_SRC_DECI_160M_BB 
+ *                  APS_CLK_SPI3_SRC_EXTERNAL     
+ * @param eDiv[in] Select the source divider of SPI3 clock tree. Refer to ::E_ApsClkSpi3Divn_t
+ *                  APS_CLK_SPI3_DIV_1 
+ *                  APS_CLK_SPI3_DIV_2 
+ *                  APS_CLK_SPI3_DIV_3 
+ *                  APS_CLK_SPI3_DIV_4 
+ * @return Setup status ::E_RESULT_COMMON
+ * @retval ::RESULT_SUCCESS Setup success
+ * @retval ::RESULT_FAIL Setup fail
+ */
+uint32_t Hal_Sys_Spi3SrcSelect_patch(E_ApsClkSpi3Src_t eSrc, E_ApsClkSpi3Divn_t eDiv)
+{
+    uint32_t u32Clk;
+    
+    switch(eSrc)
+    {
+        case APS_CLK_SPI3_SRC_RC:
+            u32Clk = CLK_SRC_FREQ_RC;
+            break;
+        case APS_CLK_SPI3_SRC_XTAL:
+            u32Clk = g_sApsClkFreq.u32XtalClk;
+            break;
+        case APS_CLK_SPI3_SRC_150M_VAR:
+            u32Clk = g_sApsClkFreqExt.u32Var150Clk;
+            break;
+        case APS_CLK_SPI3_SRC_DECI_160M_BB:
+            u32Clk = CLK_SRC_FREQ_160M_BB;
+            break;;
+        case APS_CLK_SPI3_SRC_EXTERNAL:
+            u32Clk = g_sApsClkFreq.u32ExtApsClk;
+            break;
+        default:
+            return RESULT_FAIL;
+    }
+    u32Clk /= APS_CLK_SPI3_DIVN_GET(eDiv);
+    
+    AOS->SPI_CLK_SEL = (AOS->SPI_CLK_SEL & ~(AOS_SPI_CLK_SEL_SPI3_CLK_SEL_Msk | AOS_SPI_CLK_SEL_SPI3_SCLK_DIV_Msk) ) | 
+                        (eSrc << AOS_SPI_CLK_SEL_SPI3_CLK_SEL_Pos) | eDiv;
+    
+    Hal_Sys_ApsClockUpdate(APS_CLK_GRP_SPI3, u32Clk);
+    
+    Hal_Spi_DividerUpdate(SPI_IDX_3);
+    
+    return RESULT_SUCCESS;
+}
+
+/**
+ * @brief Hal_Sys_CamXvClkSrcSelect
+ *        CAM XV clock source select
+ * @param eSrc[in] Select the source of CAM XV clock tree. Refer to ::E_ApsClkCamXvClkSrc_t
+ *                  APS_CLK_CAM_XVCLK_SRC_XTAL
+ *                  APS_CLK_CAM_XVCLK_SRC_XTAL_X2
+ *                  APS_CLK_CAM_XVCLK_SRC_150M_VAR
+ *                  APS_CLK_CAM_XVCLK_SRC_DECI_160M_BB
+ *                  APS_CLK_CAM_XVCLK_SRC_EXTERNAL
+ * @param eDiv[in] Select the source divider of CAM XV clock tree. Refer to ::E_ApsClkCamXvCLKDivn_t
+ *                  APS_CLK_CAM_XVCLK_DIV_1 
+ *                  APS_CLK_CAM_XVCLK_DIV_2 
+ *                  APS_CLK_CAM_XVCLK_DIV_3 
+ *                  APS_CLK_CAM_XVCLK_DIV_4 
+ * @return Setup status ::E_RESULT_COMMON
+ * @retval ::RESULT_SUCCESS Setup success
+ * @retval ::RESULT_FAIL Setup fail
+ */
+uint32_t Hal_Sys_CamXvClkSrcSelect_patch(E_ApsClkCamXvClkSrc_t eSrc, E_ApsClkCamXvCLKDivn_t eDiv)
+{
+    uint32_t u32Clk;
+    
+    switch(eSrc)
+    {
+        case APS_CLK_CAM_XVCLK_SRC_XTAL:
+            u32Clk = g_sApsClkFreq.u32XtalClk;
+            break;
+        case APS_CLK_CAM_XVCLK_SRC_XTAL_X2:
+            u32Clk = g_sApsClkFreq.u32XtalClk * 2;
+            break;
+        case APS_CLK_CAM_XVCLK_SRC_150M_VAR:
+            u32Clk = g_sApsClkFreqExt.u32Var150Clk;;
+            break;
+        case APS_CLK_CAM_XVCLK_SRC_DECI_160M_BB:
+            u32Clk = CLK_SRC_FREQ_160M_BB;
+            break;
+        case APS_CLK_CAM_XVCLK_SRC_EXTERNAL:
+            u32Clk = g_sApsClkFreq.u32ExtApsClk;
+            break;
+        default:
+            return RESULT_FAIL;
+    }
+    u32Clk /= APS_CLK_CAM_XVCLK_DIVN_GET(eDiv);
+    
+    AOS->CAM_XVCLK_SEL = (AOS->CAM_XVCLK_SEL & ~(AOS_CAM_XVCLK_SEL_CAM_XVCLKSEL_Msk | AOS_CAM_XVCLK_SEL_CAM_XVCLK_DIVN_Msk) ) | 
+                        (eSrc << AOS_CAM_XVCLK_SEL_CAM_XVCLKSEL_Pos) | eDiv;
+    
+    Hal_Sys_ApsClockUpdate(APS_CLK_GRP_CAM_XVCLK, u32Clk);
+    
+    return RESULT_SUCCESS;
 }

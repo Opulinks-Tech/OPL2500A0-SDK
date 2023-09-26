@@ -59,6 +59,7 @@ extern "C" {
  *                          Public Functions
  *************************************************************************
  */
+void ps_update_xtal32_tick_value(double tick);
 void ps_patch_init(void);
 void ps_init_patch(void);
 void sleep_warm_init_patch(void);

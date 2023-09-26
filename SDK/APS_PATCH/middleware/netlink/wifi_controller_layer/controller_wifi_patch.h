@@ -104,6 +104,7 @@ typedef struct {
     void    *sae_confirm_buf;
     uint32_t sae_confirm_buf_len;
 
+    uint8_t  standard;
     ctrl_wifi_scan_res_patch_t *p_ap_info;
 } ctrl_wifi_connect_cfg_patch_t;
 

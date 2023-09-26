@@ -108,4 +108,5 @@ Declaration of static Global Variables & Functions
 }
 #endif
 
+#include "mw_ota_def_patch.h"
 #endif // _MW_OTA_DEF_H_

@@ -41,10 +41,16 @@ Head Block of The File
 #include "mw_ota.h"
 #include "mw_ota_boot.h"
 #include "boot_sequence.h"
+#include "hal_uart.h"
+#include "hal_pin.h"
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
-
+#define SYS_UART_SCLK_FON_MSK                       (SYS_UART_SCLK_FON_UART0_CLK_FON_Msk | \
+                                                     SYS_UART_SCLK_FON_UART1_CLK_FON_Msk | \
+                                                     SYS_UART_SCLK_FON_APS_UART_CLK_FON_Msk | \
+                                                     SYS_UART_SCLK_FON_MSQ_UART_CLK_FON_Msk)
+#define SYS_UART_SCLK_FON_SET_VALUE                 (0)
 
 /********************************************
 Declaration of data structure
@@ -72,6 +78,9 @@ Declaration of static Global Variables & Functions
 // Sec 7: declaration of static function prototype
 void BA_main(void)  __attribute__((used, section("BA_MAIN")));
 
+#ifdef OPL2500_EXT_FLASH
+void BA_PinmuxUpdate(void);
+#endif /* OPL2500_EXT_FLASH */
 
 /***********
 C Functions
@@ -97,6 +106,15 @@ void BA_main(void)
     // for cold boot only
     if (0 != Boot_CheckWarmBoot())
         return;
+    
+    MwOta_PatchInit();
+#ifdef OPL2500_EXT_FLASH
+    BA_PinmuxUpdate();
+    MwOta_ExtFlashInit(SPI_SLAVE_1, MW_OTA_EXT_IMAGE_ADDR_PATCH_START, MW_OTA_EXT_IMAGE_SIZE_PATCH);
+#endif /* OPL2500_EXT_FLASH */
+    
+    Hal_Uart_PatchInit();
+    SYS->UART_SCLK_FON = (SYS->UART_SCLK_FON & ~SYS_UART_SCLK_FON_MSK) | SYS_UART_SCLK_FON_SET_VALUE;
 
     // init bss section
     memset(Image$$RW_IRAM1$$ZI$$Base, 0, (unsigned int)&Image$$RW_IRAM1$$ZI$$Length);
@@ -117,3 +135,16 @@ void BA_main(void)
     // the memory space will be used for dynamical memory pool
     Boot_BeforeApplyPatch = Boot_BeforeApplyPatch_impl;
 }
+
+#ifdef OPL2500_EXT_FLASH
+void BA_PinmuxUpdate(void)
+{
+    /* Update Pinmux for external flash here */
+    Hal_Pin_Config(PIN_TYPE_SPI0_CS1_IO3  | PIN_DRVCRNT_IO3_4mA | PIN_INMODE_IO3_FLOATING);
+    Hal_Pin_Config(PIN_TYPE_SPI0_IO2_IO10 | PIN_DRVCRNT_IO10_8mA | PIN_INMODE_IO10_PULL_UP);
+    Hal_Pin_Config(PIN_TYPE_SPI0_IO3_IO11 | PIN_DRVCRNT_IO11_8mA | PIN_INMODE_IO11_PULL_UP);
+    Hal_Pin_Config(PIN_TYPE_SPI0_CLK_IO13 | PIN_DRVCRNT_IO13_8mA | PIN_INMODE_IO13_FLOATING);
+    Hal_Pin_Config(PIN_TYPE_SPI0_IO0_IO14 | PIN_DRVCRNT_IO14_8mA | PIN_INMODE_IO14_FLOATING);
+    Hal_Pin_Config(PIN_TYPE_SPI0_IO1_IO15 | PIN_DRVCRNT_IO15_8mA | PIN_INMODE_IO15_FLOATING);
+}
+#endif /* OPL2500_EXT_FLASH */

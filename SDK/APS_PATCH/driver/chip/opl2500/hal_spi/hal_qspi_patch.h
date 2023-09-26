@@ -37,7 +37,9 @@ extern "C" {
  *                          Definitions and Macros
  *************************************************************************
  */
-
+#define XIP_PROTECTION_LOCK()
+    
+#define XIP_PROTECTION_UNLOCK()
 
 /*
  *************************************************************************
@@ -52,7 +54,7 @@ extern "C" {
  *                          Public Variables
  *************************************************************************
  */
-
+extern uint32_t g_u32aHal_QspiRemapAddr[SPI_SLAVE_MAX];
 
 /*
  *************************************************************************
@@ -60,7 +62,9 @@ extern "C" {
  *************************************************************************
  */
 void Hal_Qspi_PatchInit(void);
-void Hal_QSpi_UpdateRemap(uint32_t u32Addr);
+void Hal_QSpi_UpdateRemap(E_SpiSlave_t eSlvIdx, uint32_t u32Addr);
+void Hal_QSpi_SetXipCs(E_SpiSlave_t eSlvIdx);
+void Hal_Qspi_RestoreXipCs(void);
 
 #ifdef __cplusplus
 }

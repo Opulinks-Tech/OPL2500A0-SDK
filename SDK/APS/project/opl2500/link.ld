@@ -38,10 +38,16 @@ SECTIONS
     .aps_bss ALIGN(4) : { *(.bss .bss* COMMON) } >APS_RAM
     . = ALIGN(4);
     __aps_bss_end__ = .;
-    
+        
     . = APS_HEAP_START;
+    . = ALIGN(16);
+    __heap_start__ = .;
+    __heap_end__ = APS_RAM_END;
     __heap_size__ = APS_RAM_END - __heap_start__;
-    __heap_start__ = ADDR(.heap );
-    .heap ALIGN(4) : { . = . + __heap_size__; } >APS_RAM
-    __heap_end__ = .;
+    .heap ALIGN(16) : { 
+        . = .;
+        ASSERT((__heap_start__  >= __aps_bss_end__ ), "Error: Heap and APS Bss section are overlapped");
+        ASSERT((__heap_start__ < APS_RAM_END), "Error: APS_HEAP_START is over than APS_RAM_END");
+        ASSERT((APS_RAM_END <= 0x454000), "Error: APS_RAM_END definition is invalid, APS Ram end cannot be over 0x454000");
+    } >APS_RAM
 }

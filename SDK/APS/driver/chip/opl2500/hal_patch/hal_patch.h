@@ -87,5 +87,5 @@ Declaration of static Global Variables & Functions
 #ifdef __cplusplus
 }
 #endif
-
+#include "hal_patch_patch.h"
 #endif // _HAL_PATCH_H_

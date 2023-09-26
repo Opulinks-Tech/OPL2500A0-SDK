@@ -124,8 +124,8 @@ void __Patch_EntryPoint(void)
     SysInit_EntryPoint();
 
 #ifdef SWITCH_TO_32K_RC
-    // Uncomment this function when the device is without 32k XTAL.
-    Sys_SwitchTo32kRC();
+    /* Not needs to setup, OPL2500 will auto detect 32k XTAL
+     * When not found 32k XTAL, it will use 32k RC */
 #endif 
     // update the pin mux
     Hal_SysPinMuxAppInit = Main_PinMuxUpdate;

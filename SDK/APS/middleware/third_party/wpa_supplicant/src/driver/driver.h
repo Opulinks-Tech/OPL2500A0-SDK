@@ -27,6 +27,16 @@ extern const struct wpa_driver_ops wpa_driver_opl_ops;
 
 
 /**
+ * @brief WiFi standard
+ */
+typedef enum {
+    WPA_STD_11B = 0,
+    WPA_STD_11G,
+    WPA_STD_11N,
+    WPA_STD_11AX,
+} wpa_standard_t;
+
+/**
  * struct wpa_driver_scan_params - Scan parameters
  * Data for struct wpa_driver_ops::scan2().
  */
@@ -47,6 +57,7 @@ struct wpa_driver_connect_params {
     uint8_t  channel;
     uint8_t  password[64];
     uint8_t  password_len;
+    uint8_t  standard;
     uint32_t auth_type;           /* 0:OPEN, 1:WPA, 2:WPA2, 3:WPA3 */
     uint8_t  sorting;             /* Sort the scan result */
     void    *wpa_rsn_buf;

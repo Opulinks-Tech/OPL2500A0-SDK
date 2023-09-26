@@ -116,4 +116,5 @@ extern T_Hal_Cache_CounterResetAll_fp    Hal_Cache_CounterResetAll;
  */
 void Hal_Cache_Pre_Init(void);
 
+#include "hal_cache_patch.h"
 #endif /* __HAL_CACHE_H__ */

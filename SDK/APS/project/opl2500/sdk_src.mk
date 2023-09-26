@@ -7,6 +7,9 @@ SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_system/hal_system_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_auxadc/hal_auxadc_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_flash_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_qspi_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_spi_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_psram_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_cache_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_system/hal_sys_rcc_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_gpio/hal_pin_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_vic/hal_vic_patch.o
@@ -24,5 +27,7 @@ SDK_SRC += $(ROOT)/APS/middleware/third_party/httpclient/httpclient.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/mw_fim/mw_fim_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/mw_fim/mw_fim_default_group01_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/mw_fim/mw_fim_default_group02_patch.o
+#mw_ota
+SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/mw_ota/mw_ota_patch.o
 #common
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/netlink/common/sys_ctrl/sys_common_ctrl_patch.o

@@ -146,7 +146,7 @@ typedef enum {
     WIFI_REASON_CODE_INVALID_RSNE_CAPABILITIES,           /**<  22  Invalid RSN information element capabilities. */
     WIFI_REASON_CODE_IEEE_802_1X_AUTH_FAILED,             /**<  23  IEEE 802.1X authentication failed. */
     WIFI_REASON_CODE_CIPHER_REJECTED,                     /**<  24  Cipher suite rejected because of the security policy. */
-    
+
     WIFI_REASON_CODE_AUTO_CONNECT_FAILED = 200,          /**<  200  Auto connect failed. */
     WIFI_REASON_CODE_CONNECT_NOT_FOUND,                  /**<  201  The target AP is not found. */
     WIFI_REASON_CODE_CONNECT_TIMEOUT,                    /**<  202  Connect to AP timeout. */
@@ -219,6 +219,16 @@ typedef enum {
 } wifi_auto_connet_mode_e;
 
 /**
+ * @brief WiFi standard
+ */
+typedef enum {
+    WIFI_STD_11B = 0,
+    WIFI_STD_11G,
+    WIFI_STD_11N,
+    WIFI_STD_11AX,
+} wifi_standard_t;
+
+/**
 * @}
 */
 
@@ -234,14 +244,14 @@ typedef int (*wifi_event_notify_cb_t)(void *data);
 /** @brief (Deprecated) Range of active scan times per channel */
 typedef struct {
     uint32_t min;                           /**< minimum active scan time per channel, units: millisecond */
-    uint32_t max;                           /**< maximum active scan time per channel, units: millisecond, 
+    uint32_t max;                           /**< maximum active scan time per channel, units: millisecond,
                                                  maximum values 1500ms may cause station to disconnect from AP and are not recommended. */
 } wifi_active_scan_time_t;
 
 /** @brief Aggregate of active & passive scan time per channel */
 typedef union {
     wifi_active_scan_time_t active;         /**< (Deprecated) active scan time per channel, units: millisecond. */
-    uint32_t passive;                       /**< maximum active scan time per channel, units: millisecond, 
+    uint32_t passive;                       /**< maximum active scan time per channel, units: millisecond,
                                                  maximum values 1500ms may cause station to disconnect from AP and are not recommended. */
 } wifi_scan_time_t;
 
@@ -266,7 +276,7 @@ typedef struct {
     int   rssi;                                /**< Records the RSSI value when probe response is received. */
     uint16_t beacon_interval;                  /**< Indicates the beacon interval. */
     uint16_t capability_info;                  /**< The Capability Information field contains a number of subfields that are used to indicate requested or advertised optional capabilities. */
-    uint8_t dtim_period;                       /**< The DTIM Period indicates the number of beacon intervals between successive DTIMs. 
+    uint8_t dtim_period;                       /**< The DTIM Period indicates the number of beacon intervals between successive DTIMs.
                                                     If all TIMs are DTIMs, the DTIM Period field has the value 1.*/
 } wifi_scan_info_t;
 
@@ -301,6 +311,7 @@ typedef struct {
     uint8_t bssid[WIFI_MAC_ADDRESS_LENGTH];   /**< The MAC address of the target AP. */
     uint8_t password[WIFI_LENGTH_PASSPHRASE]; /**< The password of the target AP. */
     uint8_t password_length;                  /**< The length of the password. If the length is 64, the password is regarded as PMK. */
+    uint8_t standard;                         /**< The Wi-Fi standard. */
     wifi_scan_method_t scan_method;           /**< (Not Supported) do all channel scan or fast scan */
     wifi_sort_method_t sort_method;           /**< Sort the connect AP in the list by rssi or security mode */
     wifi_fast_scan_threshold_t  threshold;    /**< (Not Supported) When scan_method is set to WIFI_FAST_SCAN, only APs which have an auth mode that is more secure than the selected auth mode and a signal stronger than the minimum RSSI will be used. */

@@ -23,6 +23,7 @@
  */
 #include "hal_qspi.h"
 #include "hal_tick.h"
+#include "hal_cache.h"
 #include "opl2500.h"
 /*
  *************************************************************************
@@ -42,12 +43,18 @@
 *************************************************************************
 */
 void Hal_Qspi_Init_patch(E_SpiSlave_t eSlvIdx, uint32_t u32Sclk);
+void Hal_Qspi_Peri_Select_patch(E_SpiSlave_t eSlvIdx);
 /*
  *************************************************************************
  *                          Public Variables
  *************************************************************************
  */
-
+uint32_t g_u32aHal_QspiRemapAddr[SPI_SLAVE_MAX] = {
+    APS_XIP_MEM_BASE,
+    APS_XIP_MEM_BASE,
+    APS_XIP_MEM_BASE,
+    APS_XIP_MEM_BASE
+};
 
 /*
  *************************************************************************
@@ -56,8 +63,8 @@ void Hal_Qspi_Init_patch(E_SpiSlave_t eSlvIdx, uint32_t u32Sclk);
  */
  
 
-
-uint32_t u32Hal_QspiRemapAddr = QSPI_REMAP_ADDR;
+E_SpiSlave_t eHal_QspiCurrCsIdx = SPI_SLAVE_MAX;/* Avoid ZI function */
+E_SpiSlave_t eHal_QspiXipCsIdx = SPI_SLAVE_MAX; /* Avoid ZI function */
 
 
 
@@ -69,11 +76,22 @@ uint32_t u32Hal_QspiRemapAddr = QSPI_REMAP_ADDR;
 void Hal_Qspi_PatchInit(void)
 {
     Hal_Qspi_Init = Hal_Qspi_Init_patch;
+    Hal_Qspi_Peri_Select = Hal_Qspi_Peri_Select_patch;
+    eHal_QspiCurrCsIdx = SPI_SLAVE_0;
+    eHal_QspiXipCsIdx = SPI_SLAVE_0;
 }
 
-void Hal_QSpi_UpdateRemap(uint32_t u32Addr)
+void Hal_QSpi_UpdateRemap(E_SpiSlave_t eSlvIdx, uint32_t u32Addr)
 {
     uint8_t u8XipEn;
+    
+    if (eSlvIdx >= SPI_SLAVE_MAX)
+        return;
+    
+    g_u32aHal_QspiRemapAddr[eSlvIdx] = u32Addr;
+    
+    if (eHal_QspiCurrCsIdx != eSlvIdx)
+        return;
     
     if (u32Addr == XIP->RAR)
         return;
@@ -85,8 +103,19 @@ void Hal_QSpi_UpdateRemap(uint32_t u32Addr)
     XIP->RAR = u32Addr;
     if (u8XipEn)
         Hal_Qspi_Enable(1);
-    
-    u32Hal_QspiRemapAddr = XIP->RAR;
+}
+
+void Hal_QSpi_SetXipCs(E_SpiSlave_t eSlvIdx)
+{
+    eHal_QspiXipCsIdx = eSlvIdx;
+}
+
+void Hal_Qspi_RestoreXipCs(void)
+{
+    if (eHal_QspiCurrCsIdx != eHal_QspiXipCsIdx)
+    {
+        Hal_Qspi_Peri_Select(eHal_QspiXipCsIdx);
+    }
 }
 
 
@@ -120,5 +149,50 @@ void Hal_Qspi_Init_patch(E_SpiSlave_t eSlvIdx, uint32_t u32Sclk)
     if (eSlvIdx >= SPI_SLAVE_MAX)
         return;
     Hal_Qspi_Init_impl(eSlvIdx, u32Sclk);
-    Hal_QSpi_UpdateRemap(u32Hal_QspiRemapAddr); /* Update for warmboot */
+    eHal_QspiCurrCsIdx = eSlvIdx;
+    Hal_QSpi_UpdateRemap(eSlvIdx, g_u32aHal_QspiRemapAddr[eSlvIdx]); /* Update for warmboot */
+}
+
+/*************************************************************************
+* FUNCTION:
+*  Hal_Qspi_Peri_Select
+*
+* DESCRIPTION:
+*   1. to setup peripheral chip select line
+*
+* CALLS
+*
+* PARAMETERS
+*   1. eSlvIdx : Index of SPI slave.
+*
+* RETURNS
+*   None
+*
+* GLOBALS AFFECTED
+* 
+*************************************************************************/
+void Hal_Qspi_Peri_Select_patch(E_SpiSlave_t eSlvIdx)
+{
+    // current peripheral chip select
+    uint32_t u32Temp = (XIP->QCR & XIP_QCR_PCSL_Msk) >> XIP_QCR_PCSL_Pos;
+    
+    if (eSlvIdx >= SPI_SLAVE_MAX)
+        return;
+    
+    if ((u32Temp & (0x1 << eSlvIdx)) == 0) // current chip select is the same as specified
+    {
+        // do nothing
+    }
+    else // change peripheral chip select
+    {
+        Hal_Qpsi_Idle_Poll();
+        u32Temp = XIP->QCR;
+        u32Temp &= ~(XIP_QCR_PCSL_Msk);
+        u32Temp |= ((0xF & ~(0x1 << eSlvIdx)) << XIP_QCR_PCSL_Pos);
+        XIP->QCR = u32Temp;
+        
+        eHal_QspiCurrCsIdx = eSlvIdx;
+    }
+    
+    Hal_Cache_Clear();
 }

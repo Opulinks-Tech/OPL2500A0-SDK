@@ -29,7 +29,8 @@
  *                          Definitions and Macros
  *************************************************************************
  */
-
+#define MW_FIM_SIGNATURE_GROUP      0x67726F70  // grop
+#define MW_FIM_FLASH_BLOCK_MASK     0x0FFF      // 4KB Mask
 /*
  *************************************************************************
  *                          Typedefs and Structures
@@ -42,6 +43,7 @@
 *************************************************************************
 */
 void MwFim_FileDataDefaultFill_impl(void);
+uint8_t MwFim_GroupBlockDrop_patch(uint32_t ulStartAddr);
 /*
  *************************************************************************
  *                          Public Variables
@@ -69,7 +71,11 @@ void MwFim_FileDataDefaultFill_impl(void);
  *************************************************************************
  */
 
-
+void MwFim_PatchInit(void)
+{
+    MwFim_GroupBlockDrop = MwFim_GroupBlockDrop_patch;
+    MwFim_FileDataDefaultFill   = MwFim_FileDataDefaultFill_impl;
+}
 
 /*
  *************************************************************************
@@ -78,7 +84,44 @@ void MwFim_FileDataDefaultFill_impl(void);
  */
 
 
-void MwFim_PatchInit(void)
+
+/*************************************************************************
+* FUNCTION:
+*   MwFim_GroupBlockDrop
+*
+* DESCRIPTION:
+*   Drop the flash of group block. write zero to group header signature
+*
+* PARAMETERS
+*   1. ulStartAddr : [In] the start address
+*   2. ulGroupSize : [In] the group size
+*
+* RETURNS
+*   1. MW_FIM_OK   : success
+*   2. MW_FIM_FAIL : fail
+*
+*************************************************************************/
+uint8_t MwFim_GroupBlockDrop_patch(uint32_t ulStartAddr)
 {
-    MwFim_FileDataDefaultFill   = MwFim_FileDataDefaultFill_impl;
+    uint8_t ubRet = MW_FIM_FAIL;
+    uint32_t u32Signature = 0;
+
+    if (Hal_Flash_AddrRead_Ext(g_MwFim_FlashCtrlCfg.eSpiIdx, g_MwFim_FlashCtrlCfg.eSlvIdx, ulStartAddr, 0, sizeof(u32Signature), (uint8_t *)&u32Signature))
+        goto done;
+    
+    if (u32Signature != MW_FIM_SIGNATURE_GROUP)
+        goto done;
+    
+    // check the start address
+    if (MW_FIM_FLASH_BLOCK_MASK & ulStartAddr)
+        goto done;
+
+    // erase the group block
+    if (0 != Hal_Flash_AddrProgram_Ext(g_MwFim_FlashCtrlCfg.eSpiIdx, g_MwFim_FlashCtrlCfg.eSlvIdx, ulStartAddr, 0, sizeof(u32Signature), (uint8_t *)&u32Signature))
+        goto done;
+
+    ubRet = MW_FIM_OK;
+
+done:    
+    return ubRet;    
 }

@@ -41,18 +41,40 @@ Head Block of The File
 #include "sys_init.h"
 #include "hal_system.h"
 #include "mw_fim.h"
+#include "mw_fim_default_group01.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
 #include "hal_pin.h"
 #include "hal_pin_def.h"
-#include "hal_pin_config_project.h"
 #include "hal_dbg_uart.h"
 #include "hal_vic.h"
 #include "boot_sequence.h"
 #include "freertos_cmsis.h"
 #include "at_cmd_common.h"
+#include "at_cmd_task.h"
 
 #include "iperf_example_main.h"
+
+#define BOARD_EVB                ( 1)
+// #define BOARD_EVB_EXT_3_PINS     ( 2) /* Not support in this example */
+// #define BOARD_EVB_EXT_4_PINS     ( 3) /* Not support in this example */
+#define BOARD_2500S_MODULE       (12)
+#define BOARD_2500P_MODULE_V2    (22)
+#define BOARD_2500P_MODULE_V3    (23)
+
+#define BOARD_CURR               BOARD_2500P_MODULE_V3 /* <-- Config here */
+
+#if( BOARD_CURR == BOARD_2500P_MODULE_V3 )
+    #include "hal_pin_config_iperf_2500p_v3.h"
+#elif( BOARD_CURR == BOARD_2500P_MODULE_V2 )
+    #include "hal_pin_config_iperf_2500p_v2.h"
+#elif( BOARD_CURR == BOARD_2500S_MODULE )
+    #include "hal_pin_config_iperf_2500s.h"
+#elif( BOARD_CURR == BOARD_2500S_MODULE )
+    #include "hal_pin_config_iperf.h" /* For EVB or FPGA */
+#else
+    #error Not supported !!!
+#endif
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 // the number of elements in the message queue
@@ -76,7 +98,7 @@ Declaration of Global Variables & Functions
 Declaration of static Global Variables & Functions
 ***************************************************/
 // Sec 6: declaration of static global variable
-static E_PIN_MAIN_UART_MODE g_eAppMainUartMode = PIN_MAIN_UART_MODE_AT;
+
 
 // Sec 7: declaration of static function prototype
 void __Patch_EntryPoint(void) __attribute__((section("ENTRY_POINT"), used));
@@ -85,7 +107,7 @@ static void Main_PinMuxUpdate(void);
 static void Main_MiscModulesInit(void);
 static void Main_AppInit_patch(void);
 static void Main_FlashLayoutUpdate(void);
-static void Main_AtUartDbgUartSwitch(void);
+static void at_cmd_switch_uart1_dbguart_patch(void);
 
 
 /***********
@@ -113,25 +135,28 @@ void __Patch_EntryPoint(void)
     SysInit_EntryPoint();
 
 #ifdef SWITCH_TO_32K_RC
-    // Uncomment this function when the device is without 32k XTAL.
-    Sys_SwitchTo32kRC();
+    /* Not needs to setup, OPL2500 will auto detect 32k XTAL
+     * When not found 32k XTAL, it will use 32k RC */
 #endif 
     // update the pin mux
     Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
-    
+
     // update the flash layout
     MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
-    
+
     /* APS_HEAP_START and APS_HEAP_LENGTH are from scatter/linker file
      * When needs to change HEAP size, please modify scatter/linker file.
      * Do NOT write the argument here */
     osHeapAssign(APS_HEAP_START, APS_HEAP_LENGTH);
     Main_HeapPatchInit();
-    
+
+    // update driver-level config
     Sys_MiscModulesInit = Main_MiscModulesInit;
-    
+
+#if( BOARD_CURR >= BOARD_2500S_MODULE )
     // update the switch AT UART / dbg UART function
-    at_cmd_switch_uart1_dbguart = Main_AtUartDbgUartSwitch;
+    at_cmd_switch_uart1_dbguart = at_cmd_switch_uart1_dbguart_patch;
+#endif
 
     // application init
     Sys_AppInit = Main_AppInit_patch;
@@ -240,8 +265,10 @@ static void Main_PinMuxUpdate(void)
     Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_SIP_42);
     Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_SIP_43);
     Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_SIP_44);
-    
+
     Hal_Pin_UpdatePsramCfg();
+
+    at_io01_uart_mode_set(HAL_PIN_MAIN_UART_MODE_PATCH);
 }
 
 /*************************************************************************
@@ -298,8 +325,40 @@ static void Main_MiscModulesInit(void)
      */
     if (!Boot_CheckWarmBoot())
     {
-        Hal_ExtPa_Pin_Set( 4, 6, 18, 0xFF); /* No PwrCtrl case */
-        // Hal_ExtPa_Pin_Set( 4, 6, 18, 5); /* PwrCtrl case */
+    #if( BOARD_CURR == BOARD_2500P_MODULE_V3 )
+        Hal_ExtPa_Pin_Set( 4, 6, 3, 5);
+
+        // Force Wifi pwr to ext-PA level
+        uint8_t u8Temp = 0;
+        MwFim_FileRead(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        if(u8Temp < 0xE0)
+        {
+            u8Temp = 0xE0;
+            MwFim_FileWrite(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        }
+    #elif( BOARD_CURR == BOARD_2500P_MODULE_V2 )
+        Hal_ExtPa_Pin_Set( 4, 6, 18, 0xFF);
+
+        // Force Wifi pwr to ext-PA level
+        uint8_t u8Temp = 0;
+        MwFim_FileRead(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        if(u8Temp < 0xE0)
+        {
+            u8Temp = 0xE0;
+            MwFim_FileWrite(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        }
+    #elif( BOARD_CURR == BOARD_2500S_MODULE )
+        // Force Wifi pwr to HP level
+        uint8_t u8Temp = 0;
+        MwFim_FileRead(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        if(u8Temp < 0xC0)
+        {
+            u8Temp = 0xC0;
+            MwFim_FileWrite(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        }
+    #else
+        // Do nothing here...
+    #endif
     }
 
     //Hal_Wdt_Stop();   //disable watchdog here.
@@ -307,7 +366,7 @@ static void Main_MiscModulesInit(void)
 
 /*************************************************************************
 * FUNCTION:
-*   Main_AtUartDbgUartSwitch
+*   at_cmd_switch_uart1_dbguart_patch
 *
 * DESCRIPTION:
 *   switch the UART1 and dbg UART
@@ -319,26 +378,34 @@ static void Main_MiscModulesInit(void)
 *   none
 *
 *************************************************************************/
-static void Main_AtUartDbgUartSwitch(void)
+extern E_PIN_MAIN_UART_MODE g_eAt_MainUartMode;
+static void at_cmd_switch_uart1_dbguart_patch(void)
 {
-    if (g_eAppMainUartMode == PIN_MAIN_UART_MODE_AT)
-    {
-        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO0 | PIN_INMODE_IO0_FLOATING);
-        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO2 | PIN_INMODE_IO2_PULL_UP);
+    osSemaphoreWait(g_tSwitchuartSem, osWaitForever);
 
-        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO5 | PIN_INMODE_IO5_FLOATING);
-        Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO1 | PIN_INMODE_IO1_PULL_UP);
+    /* Set UART RX to high first in order not to receive wrong data */
+    Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_HIGH);
+    Hal_Pin_Config(PIN_TYPE_UART1_RXD_HIGH);
+
+    if(g_eAt_MainUartMode == PIN_MAIN_UART_MODE_AT)
+    {   /* Switch 0, 2 to debug UART */
+        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO0);
+        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO2|PIN_INMODE_IO2_PULL_UP);
+
+        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO22);
+        Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO1|PIN_INMODE_IO1_PULL_UP);
     }
     else
-    {
-        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO0 | PIN_INMODE_IO0_FLOATING);
-        Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO2 | PIN_INMODE_IO2_PULL_UP);
-        
-        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO5 | PIN_INMODE_IO5_FLOATING);
-        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO1 | PIN_INMODE_IO1_PULL_UP);
+    {   /* Switch 0, 2 to AT UART */
+        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO22);
+        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO1|PIN_INMODE_IO1_PULL_UP);
+
+        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO0);
+        Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO2|PIN_INMODE_IO2_PULL_UP);
     }
-    
-    g_eAppMainUartMode = (E_PIN_MAIN_UART_MODE)!g_eAppMainUartMode;
+
+    g_eAt_MainUartMode = (E_PIN_MAIN_UART_MODE)!g_eAt_MainUartMode;
+    osSemaphoreRelease(g_tSwitchuartSem);
 }
 
 /*************************************************************************

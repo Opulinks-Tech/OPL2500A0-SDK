@@ -59,7 +59,9 @@ extern "C" {
  *                          Public Functions
  *************************************************************************
  */
+void Boot_HwPatchInit(void);
 void Boot_PrepareM0PatchOK_patch(void);
+void Boot_RtcSelect32kRc(void);
 
 #ifdef __cplusplus
 }

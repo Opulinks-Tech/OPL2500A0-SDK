@@ -48,8 +48,6 @@ extern "C" {
 
 
 #define AOS_APS_DM_CLK_UNSED_MODULES                (AOS_APS_DM_CLK_SEL_I2S_SCLK_EN |           \
-                                                     AOS_APS_DM_CLK_SEL_APSXIP_CACHE_HCLK_EN |  \
-                                                     AOS_APS_DM_CLK_SEL_APSXIP_PREFT_HCLK_EN |  \
                                                      AOS_APS_DM_CLK_SEL_AUX_DSADC_PCLK_EN |     \
                                                      AOS_APS_DM_CLK_SEL_AUX_DSADC_CLK_EN  |     \
                                                      AOS_APS_DM_CLK_SEL_PDM_IO_CLK_EN |         \
@@ -85,6 +83,10 @@ typedef enum
     VAR_SRC_180M,
     VAR_SRC_200M
 } E_ApsVarSrc_t;
+
+typedef struct {
+    uint32_t u32Var150Clk;
+}S_APS_CLK_FREQ_EXT;
 /*
  *************************************************************************
  *                          Public Variables
@@ -105,6 +107,10 @@ uint8_t Hal_Sys_VarSrcDiv_Get( E_ApsVarSrc_t eVarsrc );
 uint8_t Hal_Sys_Var150Src_PeriCheck( void );
 uint8_t Hal_Sys_Var180Src_PeriCheck( void );
 uint8_t Hal_Sys_Var200Src_PeriCheck( void );
+void Hal_Sys_Xtal32DetectStart(void);
+void Hal_Sys_Xtal32DetectEnd(void);
+void Hal_Sys_Xtal32CalcStart(void);
+void Hal_Sys_Xtal32CalcEnd(void);
 
 #ifdef __cplusplus
 }

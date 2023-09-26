@@ -119,5 +119,5 @@ Declaration of static Global Variables & Functions
 #ifdef __cplusplus
 }
 #endif
-
+#include "mw_ota_patch.h"
 #endif // _MW_OTA_H_

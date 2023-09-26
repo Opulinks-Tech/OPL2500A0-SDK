@@ -97,4 +97,6 @@ Declaration of static Global Variables & Functions
 }
 #endif
 
+#include "mw_ota_boot_patch.h"
+
 #endif // _MW_OTA_BOOT_H_

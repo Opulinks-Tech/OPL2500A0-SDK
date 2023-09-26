@@ -88,6 +88,8 @@ E_RESULT_COMMON MwFim_MsqFimLoadTableAdd(T_MW_FIM_MSQ_FIM_LOAD *ptFimLoad, uint3
  */
 E_RESULT_COMMON MwFim_MsqFimLoadTableDelete(T_MW_FIM_MSQ_FIM_LOAD *ptFimLoad, uint32_t u32FileId, uint32_t u32RecId);
 
+void MwFim_MsqPatchInit(void);
+
 #ifdef __cplusplus
 }
 #endif
