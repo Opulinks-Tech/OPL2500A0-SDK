@@ -26,10 +26,14 @@ This XIP original content is within OTA image, and it will be copied to PSRAM wh
         /* Assign PHEAP */
         vPortPHeapRegionInit((uint8_t* )APS_PHEAP_START, APS_PHEAP_LENGTH);
         
-        Main_PinMuxUpdate(); /* Init SPI pin-mux first */
-        Sys_XipSetup(XIP_MODE_EXT_PSRAM, SPI_SLAVE_1, 0);
+        if (!Boot_CheckWarmBoot())
+        {
+            Main_PinMuxUpdate_flash(); /* Init flash pin-mux first */
+        }
+        Sys_XipSetup(XIP_MODE_EXT_PSRAM, SPI_SLAVE_2, 0);
         memset(ZI_REGION_PSRAM_START, 0, ZI_REGION_PSRAM_LENGTH);   /* Init PSRAM ZI region */
         ```
+      - Update link.ld to XIP version
    Download
      - Using PatchData_XIP.txt to pack APS and MSQ binary files except XIP binary file.
      - Download application binary file

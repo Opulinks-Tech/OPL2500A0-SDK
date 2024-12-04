@@ -26,7 +26,7 @@ extern "C" {
 #define  POWER_SAVE_EN      1
 
 //Define following Macro to set LP mode; otherwise, OPL1000 would be in HP mode by default.
-#define  __RF_LP_MODE__
+//#define  __RF_LP_MODE__
 //Define following Macro to enable setting MAC address, which is enabled by default.
 //#define  __UPDATE_MAC_ADDR_FLAG__
 

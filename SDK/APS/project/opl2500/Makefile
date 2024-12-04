@@ -31,6 +31,7 @@ include ./sdk_src.mk
 PATCH_LIB = $(OUTPUT_FOLDER)/opl2500_patch_aps.a
 WPAS_LIB = $(ROOT)/APS/middleware/third_party/wpa_supplicant/project/lib/wpa_supplicant.a
 SDK_LIB   = $(OUTPUT_FOLDER)/opl2500_sdk_aps.a
+SDK_SUB_LIB   = $(OUTPUT_FOLDER)/opl2500_sdk_aps_sub.a
 MAIN_LIB  = $(OUTPUT_FOLDER)/$(OUTPUT).a
 CHKRGN_LIB = $(OUTPUT_FOLDER)/$(OUTPUT)_chkrgn.a
 
@@ -254,7 +255,9 @@ all: patch sdk $(M_SRC) check_region
 
 sdk: $(SDK_SRC)
 	@rm -f $(SDK_LIB)
-	@$(AR) -rT $(SDK_LIB) $(SDK_SRC) $(WPAS_LIB)
+	@rm -f $(SDK_SUB_LIB)
+	@$(AR) -r $(SDK_SUB_LIB) $(SDK_SRC)
+	@$(AR) -rT $(SDK_LIB) $(SDK_SUB_LIB) $(WPAS_LIB)
 
 
 

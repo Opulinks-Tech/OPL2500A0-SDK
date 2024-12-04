@@ -19,6 +19,7 @@
 #include "ftoa_util.h"
 #include "strerror_util.h"
 #include "wifi_api.h"
+#include "sys_cfg.h"
 
 static const char *TAG="iperf";
 
@@ -27,6 +28,8 @@ extern int dbg_mode;
 osThreadId iperf_client_task_id = NULL;
 osThreadId iperf_server_task_id = NULL;
 osThreadId iperf_report_task_id = NULL;
+
+uint8_t g_u8IperfClkSet = 0;
 
 static uint16_t cfg_mode       = 0x00;
 static iperf_cfg_t s_iperf_ctrl;
@@ -322,6 +325,22 @@ static int check_dual_test_by_client(iperf_client_hdr_t *client_hdr, struct sock
     return false;
 }
 
+void iperf_clk_set(void)
+{
+    if(g_u8IperfClkSet)
+    {
+        goto done;
+    }
+
+    if(!sys_cfg_clk_set((T_SysCfgClkIdx)SYS_CFG_CLK_DECI_080_MHZ))
+    {
+        g_u8IperfClkSet = 1;
+    }
+
+done:
+    return;
+}
+
 void iperf_run_udp_server(void *arg)
 {
     socklen_t addr_len = sizeof(struct sockaddr_in);
@@ -336,6 +355,8 @@ void iperf_run_udp_server(void *arg)
     int ret;
     fd_set read_fd;
     fd_set err_fd;
+
+    iperf_clk_set();
 
     malloc_service_buffer(&iperf_server_ctrl, IPERF_UDP_RX_LEN);
     
@@ -451,6 +472,8 @@ void iperf_run_udp_client(void *arg)
     int id;
     int rand_base_len = IPERF_UDP_TX_LEN - sizeof(iperf_udp_pkt_t) + 1;
 
+    iperf_clk_set();
+
     malloc_service_buffer(&iperf_client_ctrl, IPERF_UDP_TX_LEN);
 
     sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -556,6 +579,8 @@ void iperf_run_tcp_server(void *arg)
     int is_dual = false;
     int ret;
     fd_set read_fd;
+    
+    iperf_clk_set();
     
     malloc_service_buffer(&iperf_server_ctrl, IPERF_TCP_RX_LEN);
 
@@ -684,6 +709,8 @@ void iperf_run_tcp_server(void *arg)
     int ret;
     fd_set read_fd;
     
+    iperf_clk_set();
+    
     malloc_service_buffer(&iperf_server_ctrl, IPERF_TCP_RX_LEN);
 
     listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -796,6 +823,8 @@ void iperf_run_tcp_client(void *arg)
     int sockfd;
     int opt;
     
+    iperf_clk_set();
+    
     malloc_service_buffer(&iperf_client_ctrl, IPERF_TCP_TX_LEN);
 
     iperf_start_report();
@@ -897,6 +926,8 @@ void iperf_run_tcp_client(void *arg)
     uint8_t *buffer;
     int sockfd;
     int opt;
+    
+    iperf_clk_set();
     
     malloc_service_buffer(&iperf_client_ctrl, IPERF_TCP_TX_LEN);
 

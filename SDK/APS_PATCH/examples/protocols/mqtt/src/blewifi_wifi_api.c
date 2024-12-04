@@ -46,7 +46,7 @@ static T_BleWifi_Wifi_EventHandlerTbl g_tWifiEventHandlerTbl[] =
     {WIFI_EVENT_SCAN_COMPLETE,          BleWifi_Wifi_EventHandler_ScanComplete},
     {WIFI_EVENT_STA_GOT_IP,             BleWifi_Wifi_EventHandler_GotIp},
     {WIFI_EVENT_STA_CONNECTION_FAILED,  BleWifi_Wifi_EventHandler_ConnectionFailed},
-    
+
     {0xFFFFFFFF,                        NULL}
 };
 
@@ -96,8 +96,8 @@ void BleWifi_Wifi_DoConnect(uint8_t *data, int len)
                         return;
                     }
                 }
-                free(info); 
-            }   
+                free(info);
+            }
 
         }
 
@@ -126,13 +126,13 @@ void BleWifi_Wifi_DoDisconnect(void)
 static int BleWifi_Wifi_GetManufName(uint8_t *name)
 {
     uint16_t ret = false;
-    
+
     if (name == NULL)
         return ret;
 
     memset(name, 0, STA_INFO_MAX_MANUF_NAME_SIZE);
     ret = wifi_nvm_sta_info_read(WIFI_NVM_STA_INFO_MANUFACTURE_NAME, STA_INFO_MAX_MANUF_NAME_SIZE, name);
-    
+
     return ret;
 }
 
@@ -184,16 +184,16 @@ static int BleWifi_Wifi_SetManufName(uint8_t *name)
 {
     uint16_t ret = false;
     uint8_t len;
-    
+
     if (name == NULL)
         return ret;
 
     len = strlen((char *)name);
     if (len > STA_INFO_MAX_MANUF_NAME_SIZE)
         len = STA_INFO_MAX_MANUF_NAME_SIZE;
-        
+
     ret = wifi_nvm_sta_info_write(WIFI_NVM_STA_INFO_MANUFACTURE_NAME, len, name);
-    
+
     return ret;
 }
 
@@ -262,10 +262,10 @@ void BleWifi_Wifi_SendStatusInfo(uint16_t uwType)
     }
 
     /* Status */
-    *pubPos++ = ubStatus; 
+    *pubPos++ = ubStatus;
 
     /* ssid length */
-    *pubPos++ = ubStrLen; 
+    *pubPos++ = ubStrLen;
 
    /* SSID */
     if (ubStrLen != 0)
@@ -284,11 +284,11 @@ void BleWifi_Wifi_SendStatusInfo(uint16_t uwType)
 
     /* MASK */
     memcpy(pubPos,  (char *)ubaNetMask, 4);
-    pubPos += 4;                      
+    pubPos += 4;
 
     /* GATEWAY */
     memcpy(pubPos,  (char *)ubaGateway, 4);
-    pubPos += 4;                       
+    pubPos += 4;
 
     uwDataLen = (pubPos - pubData);
 
@@ -296,17 +296,17 @@ void BleWifi_Wifi_SendStatusInfo(uint16_t uwType)
     /* create Wi-Fi status info data packet */
     BleWifi_Ble_DataSendEncap(uwType, pubData, uwDataLen);
 
-release:    
+release:
     free(pubData);
 }
 
 void BleWifi_Wifi_ResetRecord(void)
 {
     uint8_t ubResetResult = 0;
-    
+
     ubResetResult = wifi_auto_connect_reset();
     BleWifi_Ble_SendResponse(BLEWIFI_RSP_RESET, ubResetResult);
-    
+
     wifi_connection_disconnect_ap();
 }
 
@@ -319,7 +319,7 @@ void BleWifi_Wifi_MacAddrWrite(uint8_t *data, int len)
     wifi_config_set_mac_address(WIFI_MODE_STA, ubaMacAddr);
     // apply the mac address from flash
     mac_addr_set_config_source(MAC_IFACE_WIFI_STA, MAC_SOURCE_FROM_FLASH);
-    
+
     BleWifi_Ble_SendResponse(BLEWIFI_RSP_ENG_WIFI_MAC_WRITE, 0);
 }
 
@@ -329,7 +329,7 @@ void BleWifi_Wifi_MacAddrRead(uint8_t *data, int len)
 
     // get the mac address from flash
     wifi_config_get_mac_address(WIFI_MODE_STA, ubaMacAddr);
-    
+
     BleWifi_Ble_DataSendEncap(BLEWIFI_RSP_ENG_WIFI_MAC_READ, ubaMacAddr, 6);
 }
 
@@ -473,7 +473,7 @@ int BleWifi_Wifi_SendScanReport(void)
         blewifi_ap_list[i].rssi = ap_list[i].rssi;
         blewifi_ap_list[i].auth_mode = ap_list[i].auth_mode;
         blewifi_ap_list[i].ssid_length = strlen((const char *)ap_list[i].ssid);
-        blewifi_ap_list[i].connected = 0;        
+        blewifi_ap_list[i].connected = 0;
         for (j = 0; j < ubAPPAutoConnectGetApNum; j++)
         {
             if ((info+j)->ap_channel)
@@ -482,7 +482,7 @@ int BleWifi_Wifi_SendScanReport(void)
                 {
                     blewifi_ap_list[i].connected = 1;
                     break;
-                }            
+                }
             }
         }
     }
@@ -498,14 +498,14 @@ int BleWifi_Wifi_SendScanReport(void)
 err:
     if (ap_list)
         free(ap_list);
-    
+
     if (blewifi_ap_list)
         free(blewifi_ap_list);
-    
-    if (info)    
+
+    if (info)
         free(info);
 
-    return ubAppErr; 
+    return ubAppErr;
 }
 
 int BleWifi_Wifi_UpdateScanInfoToAutoConnList(void)
@@ -536,14 +536,14 @@ int BleWifi_Wifi_UpdateScanInfoToAutoConnList(void)
 err:
     if (ap_list)
         free(ap_list);
-    
-    return ubAppErr; 
+
+    return ubAppErr;
 }
 
 uint8_t BleWifi_Wifi_AutoConnectListNum(void)
 {
     uint8_t ubApNum = 0;
-    
+
     wifi_auto_connect_get_saved_ap_num(&ubApNum);
     return ubApNum;
 }
@@ -559,7 +559,7 @@ void BleWifi_Wifi_ReqConnectRetry(void)
 }
 
 int BleWifi_Wifi_Rssi(int8_t *rssi)
-{    
+{
     return wifi_connection_get_rssi(rssi);
 }
 
@@ -598,13 +598,13 @@ void BleWifi_Wifi_UpdateBeaconInfo(void)
 static int BleWifi_Wifi_EventHandler_Start(wifi_event_id_t event_id, void *data, uint16_t length)
 {
     printf("\r\nWi-Fi Start \r\n");
-    
+
     /* Tcpip stack and net interface initialization,  dhcp client process initialization. */
     lwip_network_init(WIFI_MODE_STA);
-    
+
     /* DTIM */
     BleWifi_Wifi_SetDTIM(0);
-    
+
     BleWifi_Ctrl_MsgSend(BLEWIFI_CTRL_MSG_WIFI_INIT_COMPLETE, NULL, 0);
 
     return 0;
@@ -613,7 +613,7 @@ static int BleWifi_Wifi_EventHandler_Start(wifi_event_id_t event_id, void *data,
 static int BleWifi_Wifi_EventHandler_Connected(wifi_event_id_t event_id, void *data, uint16_t length)
 {
     uint8_t reason = *((uint8_t*)data);
-    
+
     printf("\r\nWi-Fi Connected, reason %d \r\n", reason);
     lwip_net_start(WIFI_MODE_STA);
     BleWifi_Ctrl_MsgSend(BLEWIFI_CTRL_MSG_WIFI_CONNECTION_IND, NULL, 0);
@@ -624,7 +624,7 @@ static int BleWifi_Wifi_EventHandler_Connected(wifi_event_id_t event_id, void *d
 static int BleWifi_Wifi_EventHandler_Disconnected(wifi_event_id_t event_id, void *data, uint16_t length)
 {
     uint8_t reason = *((uint8_t*)data);
-    
+
     printf("\r\nWi-Fi Disconnected , reason %d\r\n", reason);
     BleWifi_Ctrl_MsgSend(BLEWIFI_CTRL_MSG_WIFI_DISCONNECTION_IND, NULL, 0);
 

@@ -48,6 +48,7 @@ extern "C" {
 #define WAPI_ERR_SCAN_TYPE_INVALID -25
 #define WAPI_ERR_SCAN_TIME_INVALID -26
 #define WAPI_ERR_SORT_INVALID      -27
+#define WAPI_ERR_PROBE_CNT_INVALID -28
 
 #define WAPI_ERR_SENT_TO_USER_FAIL -30
 
@@ -58,6 +59,7 @@ extern "C" {
 #define WAPI_ERR_AUTO_OUT_OF_INDEX -44
 #define WAPI_ERR_AUTO_RETRY_END    -45
 #define WAPI_ERR_AUTO_FIM_ERR      -46
+#define WAPI_ERR_AUTO_INFO         -47
 
 /******************************************************
  *                    Structures

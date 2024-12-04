@@ -64,7 +64,7 @@ extern "C" {
 
 /**@brief maximum number of ap list items which can stored
 */
-#define WIFI_MAX_SCAN_AP_NUM                (25)
+#define WIFI_MAX_SCAN_AP_NUM                (50)
 
 /**@brief maximum number of WIFI channels
 */
@@ -289,6 +289,7 @@ typedef struct {
     wifi_scan_type_t scan_type;                /**< scan type, active or passive */
     wifi_scan_time_t scan_time;                /**< scan time per channel */
     wifi_sort_method_t sort_method;            /**< sort the scan result by method. Default sort method is channel*/
+    uint8_t probe_count;
 } wifi_scan_config_t;
 
 

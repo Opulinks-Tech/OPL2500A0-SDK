@@ -40,8 +40,7 @@ extern "C" {
 
 #define FLASH_CMD_WRITE_DISABLE              0x04
     
-#define XIP_MEM_MASK    0xFFFFFF
-#define FLASH_TO_XIP_ADDR(slv_idx, flash_addr)              ((((g_u32aHal_Flash_BaseAddress[slv_idx]) + (flash_addr)) & XIP_MEM_MASK) | APS_XIP_MEM_RW_BASE)
+#define FLASH_TO_XIP_ADDR(slv_idx, flash_addr)              Hal_Flash_ConvertXipAhbAddress(slv_idx, flash_addr)
 /*
  *************************************************************************
  *                          Typedefs and Structures
@@ -49,13 +48,14 @@ extern "C" {
  */
 
 
+typedef void (*T_Hal_Flash_InternalFlashWpSetup_fp)(void);
 
 /*
  *************************************************************************
  *                          Public Variables
  *************************************************************************
  */
-
+extern T_Hal_Flash_InternalFlashWpSetup_fp Hal_Flash_InternalFlashWpSetup;
 
 /*
  *************************************************************************
@@ -63,8 +63,9 @@ extern "C" {
  *************************************************************************
  */
 void Hal_Flash_PatchInit(void);
-void Hal_Flash_QspiBaseAddrSet(E_SpiSlave_t eSlvIdx, uint32_t BaseAddr);
-
+uint32_t Hal_Flash_ReadFlashId(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx);
+uint32_t Hal_WriteProtectControlSet(E_FUNC_ST eFunc);
+E_FUNC_ST Hal_WriteProtectControlGet(void);
 #ifdef __cplusplus
 }
 #endif

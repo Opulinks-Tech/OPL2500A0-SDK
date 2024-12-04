@@ -43,7 +43,16 @@ extern "C" {
  *                          Typedefs and Structures
  *************************************************************************
  */
-
+#ifdef WIFI_TPUT
+// sizeof(T_WifiStats) <= IPC_WIFI_TPUT_INFO_SIZE
+typedef struct
+{
+    uint32_t u32TxUdfl;
+    uint32_t u32RxOvfl;
+    uint32_t u32ApsRxFull;
+    uint32_t u32TxNoResp;
+} T_WifiStats;
+#endif
 
 
 /*

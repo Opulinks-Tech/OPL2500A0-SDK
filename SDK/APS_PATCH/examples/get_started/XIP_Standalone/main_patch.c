@@ -1,12 +1,12 @@
 /******************************************************************************
-*  Copyright 2017 - 2018, Opulinks Technology Ltd.
+*  Copyright 2017 - 2021, Opulinks Technology Ltd.
 *  ----------------------------------------------------------------------------
 *  Statement:
 *  ----------
 *  This software is protected by Copyright and the information contained
 *  herein is confidential. The software may not be copied and the information
 *  contained herein may not be used or disclosed except with the written
-*  permission of Opulinks Technology Ltd. (C) 2018
+*  permission of Opulinks Technology Ltd. (C) 2021
 ******************************************************************************/
 
 /******************************************************************************
@@ -39,50 +39,60 @@ Head Block of The File
 #include <string.h>
 #include "sys_init.h"
 #include "hal_system.h"
+#include "hal_flash.h"
 #include "mw_fim.h"
+#include "mw_fim_default_group01.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
 #include "hal_pin.h"
 #include "hal_pin_def.h"
-#include "hal_pin_config_project.h"
 #include "hal_dbg_uart.h"
 #include "hal_vic.h"
 #include "boot_sequence.h"
 #include "freertos_cmsis.h"
+#include "at_cmd_task.h"
 #include "at_cmd_common.h"
+#include "at_cmd_tcpip.h"
+#include "at_cmd_wifi.h"
+#include "at_cmd_app.h"
+#include "at_cmd_property.h"
+#include "at_cmd_msg_ext.h"
 
-// Sec 2: Constant Definitions, Imported Symbols, miscellaneous
-// the number of elements in the message queue
-#define APP_MESSAGE_Q_SIZE  16
-#define DEMO_XIP_RODATA_LEN 128
 
 #define XIP_STANDALONE_FLASH_ADDRESS     0x90000
+
+#define BOARD_EVB                ( 1)
+// #define BOARD_EVB_EXT_3_PINS     ( 2) /* Not support in this example */
+// #define BOARD_EVB_EXT_4_PINS     ( 3) /* Not support in this example */
+#define BOARD_2500S_MODULE       (12)
+#define BOARD_2500P_MODULE_V3    (23)
+
+#define BOARD_CURR               BOARD_2500P_MODULE_V3 /* <-- Config here */
+
+#if( BOARD_CURR == BOARD_2500P_MODULE_V3 )
+    #include "hal_pin_config_project_2500p_v3.h"
+#elif( BOARD_CURR == BOARD_2500S_MODULE )
+    #include "hal_pin_config_project_2500s.h"
+#elif( BOARD_CURR == BOARD_2500S_MODULE )
+    #include "hal_pin_config_project.h" /* For EVB or FPGA */
+#else
+    #error Not supported !!!
+#endif
+
 
 /********************************************
 Declaration of data structure
 ********************************************/
 // Sec 3: structure, union, enum, linked list
 // the content of message queue
-typedef struct
-{
-    uint32_t ulCount;
-} S_MessageQ;
+
 
 
 /********************************************
 Declaration of Global Variables & Functions
 ********************************************/
 // Sec 4: declaration of global variable
-XIP_RODATA const uint8_t g_u8RoData[DEMO_XIP_RODATA_LEN] = {
-    0x22, 0x7D, 0xD2, 0x08, 0xB4, 0xF5, 0x5D, 0x56, 0x8C, 0xDF, 0x88, 0x52, 0x26, 0xF3, 0xD6, 0x52, 
-    0x75, 0x34, 0x5C, 0xBA, 0x46, 0x60, 0x22, 0xEA, 0x50, 0xE1, 0x2E, 0x72, 0x44, 0xD6, 0xFE, 0xF1, 
-    0x0E, 0x5E, 0x0B, 0xD1, 0x37, 0xFA, 0xF9, 0x0D, 0x0C, 0xAE, 0x8D, 0xE5, 0xC7, 0x67, 0x3C, 0xBD, 
-    0x97, 0x56, 0x71, 0xA8, 0xDD, 0xC7, 0x21, 0xC2, 0x5F, 0x1E, 0xAE, 0x7D, 0x2E, 0x05, 0x9B, 0x2F, 
-    0xA7, 0x80, 0x44, 0x42, 0x24, 0x26, 0xC5, 0xC8, 0x86, 0xBA, 0x91, 0x26, 0xD4, 0xE3, 0xED, 0xAC, 
-    0xD4, 0xBD, 0x24, 0xA6, 0x2C, 0x14, 0x55, 0x5F, 0x69, 0x47, 0x5E, 0x0C, 0x4E, 0xC5, 0x17, 0x65, 
-    0xB2, 0xDA, 0x7A, 0x55, 0x28, 0x18, 0x81, 0x19, 0x09, 0x11, 0x0F, 0xE9, 0x93, 0x3E, 0xEA, 0x75, 
-    0x35, 0x2A, 0x79, 0xC2, 0x86, 0xC2, 0x75, 0xD7, 0xBF, 0x1B, 0x36, 0xFF, 0x29, 0xE8, 0x4A, 0x13
-};
+
 // Sec 5: declaration of global function prototype
 
 
@@ -90,25 +100,18 @@ XIP_RODATA const uint8_t g_u8RoData[DEMO_XIP_RODATA_LEN] = {
 Declaration of static Global Variables & Functions
 ***************************************************/
 // Sec 6: declaration of static global variable
-static E_PIN_MAIN_UART_MODE g_eAppMainUartMode = HAL_PIN_MAIN_UART_MODE_PATCH;
-static osThreadId g_tAppThread_1;
-static osThreadId g_tAppThread_2;
 
-static osMessageQId g_tAppMessageQ;
-static osPoolId g_tAppMemPoolId;
 
 // Sec 7: declaration of static function prototype
-void __Patch_EntryPoint(void) __attribute__((section("ENTRY_POINT")));
-void __Patch_EntryPoint(void) __attribute__((used));
-static void Main_HeapPatchInit(void);
+void __Patch_EntryPoint(void) __attribute__((section("ENTRY_POINT"), used));
+XIP_TEXT void Main_HeapPatchInit(void);
 static void Main_PinMuxUpdate(void);
+FORCE_RAM_TEXT static void Main_PinMuxUpdate_flash(void);
 static void Main_MiscModulesInit(void);
-static void Main_FlashLayoutUpdate(void);
 static void Main_AppInit_patch(void);
-static void Main_AtUartDbgUartSwitch(void);
-static void Main_AppThread_1(void *argu);
-static void Main_AppThread_2(void *argu);
-static osStatus Main_AppMessageQSend(S_MessageQ *ptMsg);
+static void Main_FlashLayoutUpdate(void);
+static void at_cmd_switch_uart1_dbguart_patch(void);
+
 
 /***********
 C Functions
@@ -131,8 +134,15 @@ C Functions
 *************************************************************************/
 void __Patch_EntryPoint(void)
 {
-    Main_PinMuxUpdate(); /* Init flash pin-mux first */
+    if (!Boot_CheckWarmBoot())
+    {
+        Main_PinMuxUpdate_flash(); /* Init flash pin-mux first */
+    }
     Sys_XipSetup(XIP_MODE_STAND_ALONE, SPI_SLAVE_0, XIP_STANDALONE_FLASH_ADDRESS);
+    
+    #ifdef ENABLE_FLASH_WRITE_PROTECTION
+    Hal_WriteProtectControlSet(ENABLE);
+    #endif /* ENABLE_FLASH_WRITE_PROTECTION */
     
     // don't remove this code
     SysInit_EntryPoint();
@@ -155,8 +165,10 @@ void __Patch_EntryPoint(void)
     
     Sys_MiscModulesInit = Main_MiscModulesInit;
     
+#if( BOARD_CURR >= BOARD_2500S_MODULE )
     // update the switch AT UART / dbg UART function
-    at_cmd_switch_uart1_dbguart = Main_AtUartDbgUartSwitch;
+    at_cmd_switch_uart1_dbguart = at_cmd_switch_uart1_dbguart_patch;
+#endif
 
     // application init
     Sys_AppInit = Main_AppInit_patch;
@@ -177,7 +189,7 @@ void __Patch_EntryPoint(void)
 *   none
 *
 *************************************************************************/
-static void Main_HeapPatchInit(void)
+void Main_HeapPatchInit(void)
 {
     osMemoryDef_t PartitionMemoryTable[MAX_NUM_MEM_POOL] = {
         /* {block_size, number}
@@ -268,6 +280,18 @@ FORCE_RAM_TEXT static void Main_PinMuxUpdate(void)
     
     Hal_Pin_UpdatePsramCfg();
 }
+
+FORCE_RAM_TEXT static void Main_PinMuxUpdate_flash(void)
+{
+    Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_9);
+    Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_10);
+    Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_11);
+    Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_12);
+    Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_13);
+    Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_14);
+    Hal_Pin_Config(HAL_PIN_TYPE_PATCH_IO_15);
+}
+
 /*************************************************************************
 * FUNCTION:
 *   Main_FlashLayoutUpdate
@@ -303,12 +327,57 @@ static void Main_FlashLayoutUpdate(void)
 *************************************************************************/
 static void Main_MiscModulesInit(void)
 {
+    /*
+     * Two steps to active ext-Pa mode:
+     *
+     * Step 1) Config " hal_pin_config_project.h "
+     *         1-1) Assigned three pins according to schematic:
+     *                  [ TX_EN ]
+     *                  [ RX_EN ]
+     *                  [ LNA_EN ]
+     *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *         1-2) (Optional) (0xFF for not exist)
+                    Assigned the pin : PwrCtrl according to schematic.
+     *                  [ Pwr Ctrl ]
+     *              The three pins are MUST assinged to PIN_TYPE_GPIO_OUT_LOW.
+     *
+     * Step 2) Set Hal_ExtPa_Pin_Set(), default value was disable.
+     *
+     */
+    if (!Boot_CheckWarmBoot())
+    {
+    #if( BOARD_CURR == BOARD_2500P_MODULE_V3 )
+        Hal_ExtPa_Pin_Set( 4, 6, 3, 5);
+
+        // Force Wifi pwr to ext-PA level
+        uint8_t u8Temp = 0;
+        MwFim_FileRead(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        if(u8Temp < 0xE0)
+        {
+            u8Temp = 0xE0;
+            MwFim_FileWrite(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        }
+    #elif( BOARD_CURR == BOARD_2500S_MODULE )
+        // Force Wifi pwr to HP level
+        uint8_t u8Temp = 0;
+        MwFim_FileRead(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        if(u8Temp < 0xC0)
+        {
+            u8Temp = 0xC0;
+            MwFim_FileWrite(MW_FIM_IDX_GP01_RF_CFG, 0, MW_FIM_RF_CFG_SIZE, &u8Temp);
+        }
+    #else
+        // Do nothing here...
+    #endif
+    }
+
     //Hal_Wdt_Stop();   //disable watchdog here.
 }
 
+#if( BOARD_CURR >= BOARD_2500S_MODULE )
 /*************************************************************************
 * FUNCTION:
-*   Main_AtUartDbgUartSwitch
+*   at_cmd_switch_uart1_dbguart_patch
 *
 * DESCRIPTION:
 *   switch the UART1 and dbg UART
@@ -320,27 +389,36 @@ static void Main_MiscModulesInit(void)
 *   none
 *
 *************************************************************************/
-static void Main_AtUartDbgUartSwitch(void)
+extern E_PIN_MAIN_UART_MODE g_eAt_MainUartMode;
+static void at_cmd_switch_uart1_dbguart_patch(void)
 {
-    if (g_eAppMainUartMode == PIN_MAIN_UART_MODE_AT)
-    {
-        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO0 | PIN_INMODE_IO0_FLOATING);
+    osSemaphoreWait(g_tSwitchuartSem, osWaitForever);
+
+    /* Set UART RX to high first in order not to receive wrong data */
+    Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_HIGH);
+    Hal_Pin_Config(PIN_TYPE_UART1_RXD_HIGH);
+
+    if(g_eAt_MainUartMode == PIN_MAIN_UART_MODE_AT)
+    {   /* Switch 0, 2 to debug UART */
+        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO0);
         Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO2 | PIN_INMODE_IO2_PULL_UP);
 
-        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO5 | PIN_INMODE_IO5_FLOATING);
+        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO22);
         Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO1 | PIN_INMODE_IO1_PULL_UP);
     }
     else
-    {
-        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO0 | PIN_INMODE_IO0_FLOATING);
+    {   /* Switch 0, 2 to AT UART */
+        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO22);
+        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO1|PIN_INMODE_IO1_PULL_UP);
+
+        Hal_Pin_Config(PIN_TYPE_UART1_TXD_IO0);
         Hal_Pin_Config(PIN_TYPE_UART1_RXD_IO2 | PIN_INMODE_IO2_PULL_UP);
-        
-        Hal_Pin_Config(PIN_TYPE_APS_UART_TXD_IO5 | PIN_INMODE_IO5_FLOATING);
-        Hal_Pin_Config(PIN_TYPE_APS_UART_RXD_IO1 | PIN_INMODE_IO1_PULL_UP);
     }
     
-    g_eAppMainUartMode = (E_PIN_MAIN_UART_MODE)!g_eAppMainUartMode;
+    g_eAt_MainUartMode = (E_PIN_MAIN_UART_MODE)!g_eAt_MainUartMode;
+    osSemaphoreRelease(g_tSwitchuartSem);
 }
+#endif
 
 /*************************************************************************
 * FUNCTION:
@@ -356,172 +434,15 @@ static void Main_AtUartDbgUartSwitch(void)
 *   none
 *
 *************************************************************************/
-XIP_TEXT static void Main_AppInit_patch(void)
+static void Main_AppInit_patch(void)
 {
-    osThreadDef_t tThreadDef;
-    osMessageQDef_t tMessageDef;
-    osPoolDef_t tMemPoolDef;
+    at_cmd_wifi_func_init();
+    at_cmd_app_func_preinit();
+    at_cmd_property_func_init();
+    at_msg_ext_init();
     
-    // create the thread for AppThread_1
-    tThreadDef.name = "App_1";
-    tThreadDef.pthread = Main_AppThread_1;
-    tThreadDef.tpriority = OS_TASK_PRIORITY_APP;        // osPriorityNormal
-    tThreadDef.instances = 0;                           // reserved, it is no used
-    tThreadDef.stacksize = OS_TASK_STACK_SIZE_APP;      // (512), unit: 4-byte, the size is 512*4 bytes
-    g_tAppThread_1 = osThreadCreate(&tThreadDef, NULL);
-    if (g_tAppThread_1 == NULL)
-    {
-        printf("To create the thread for AppThread_1 is fail.\n");
-    }
-    
-    // create the thread for AppThread_2
-    tThreadDef.name = "App_2";
-    tThreadDef.pthread = Main_AppThread_2;
-    tThreadDef.tpriority = OS_TASK_PRIORITY_APP;        // osPriorityNormal
-    tThreadDef.instances = 0;                           // reserved, it is no used
-    tThreadDef.stacksize = OS_TASK_STACK_SIZE_APP;      // (512), unit: 4-byte, the size is 512*4 bytes
-    g_tAppThread_2 = osThreadCreate(&tThreadDef, NULL);
-    if (g_tAppThread_2 == NULL)
-    {
-        printf("To create the thread for AppThread_2 is fail.\n");
-    }
-    
-    // create the message queue for AppMessageQ
-    tMessageDef.queue_sz = APP_MESSAGE_Q_SIZE;          // number of elements in the queue
-    tMessageDef.item_sz = sizeof(S_MessageQ);           // size of an item
-    tMessageDef.pool = NULL;                            // reserved, it is no used
-    g_tAppMessageQ = osMessageCreate(&tMessageDef, g_tAppThread_2);
-    if (g_tAppMessageQ == NULL)
-    {
-        printf("To create the message queue for AppMessageQ is fail.\n");
-    }
-    
-    // create the memory pool for AppMessageQ
-    tMemPoolDef.pool_sz = APP_MESSAGE_Q_SIZE;           // number of items (elements) in the pool
-    tMemPoolDef.item_sz = sizeof(S_MessageQ);           // size of an item
-    tMemPoolDef.pool = NULL;                            // reserved, it is no used
-    g_tAppMemPoolId = osPoolCreate(&tMemPoolDef);
-    if (g_tAppMemPoolId == NULL)
-    {
-        printf("To create the memory pool for AppMessageQ is fail.\n");
-    }
+    printf("XIP standalone init done\n");
+    #if defined(GCC)
+    printf("GCC version\n");
+    #endif
 }
-
-/*************************************************************************
-* FUNCTION:
-*   Main_AppThread_1
-*
-* DESCRIPTION:
-*   the application thread 1
-*
-* PARAMETERS
-*   1. argu     : [In] the input argument
-*
-* RETURNS
-*   none
-*
-*************************************************************************/
-XIP_TEXT static void Main_AppThread_1(void *argu)
-{
-    S_MessageQ tMsg;
-    uint32_t ulCount = 0;
-    
-    while (1)
-    {
-        osDelay(1000);      // delay 1000ms (1sec)
-        
-        // send the message into AppMessageQ
-        ulCount++;
-        tMsg.ulCount = ulCount;
-        Main_AppMessageQSend(&tMsg);
-    }
-}
-
-/*************************************************************************
-* FUNCTION:
-*   Main_AppThread_2
-*
-* DESCRIPTION:
-*   the application thread 2
-*
-* PARAMETERS
-*   1. argu     : [In] the input argument
-*
-* RETURNS
-*   none
-*
-*************************************************************************/
-XIP_TEXT static void Main_AppThread_2(void *argu)
-{
-    osEvent tEvent;
-    S_MessageQ *ptMsgPool;
-    
-    while (1)
-    {
-        // receive the message from AppMessageQ
-        tEvent = osMessageGet(g_tAppMessageQ, osWaitForever);
-        if (tEvent.status != osEventMessage)
-        {
-            printf("To receive the message from AppMessageQ is fail.\n");
-            continue;
-        }
-        
-        // get the content of message
-        ptMsgPool = (S_MessageQ *)tEvent.value.p;
-        
-        // output the contect of message
-        printf("XIP standalone %d: %02X\n", ptMsgPool->ulCount, g_u8RoData[ptMsgPool->ulCount & (DEMO_XIP_RODATA_LEN-1)]);
-        
-        // free the memory pool
-        osPoolFree(g_tAppMemPoolId, ptMsgPool);
-    }
-}
-
-/*************************************************************************
-* FUNCTION:
-*   Main_AppMessageQSend
-*
-* DESCRIPTION:
-*   send the message into AppMessageQ
-*
-* PARAMETERS
-*   1. ptMsg    : [In] the pointer of message content
-*
-* RETURNS
-*   osOK        : successful
-*   osErrorOS   : fail
-*
-*************************************************************************/
-XIP_TEXT static osStatus Main_AppMessageQSend(S_MessageQ *ptMsg)
-{
-    osStatus tRet = osErrorOS;
-    S_MessageQ *ptMsgPool;
-    
-    // allocate the memory pool
-    ptMsgPool = (S_MessageQ *)osPoolCAlloc(g_tAppMemPoolId);
-    if (ptMsgPool == NULL)
-    {
-        printf("To allocate the memory pool for AppMessageQ is fail.\n");
-        goto done;
-    }
-    
-    // copy the message content
-    memcpy(ptMsgPool, ptMsg, sizeof(S_MessageQ));
-    
-    // send the message
-    if (osOK != osMessagePut(g_tAppMessageQ, (uint32_t)ptMsgPool, osWaitForever))
-    {
-        printf("To send the message for AppMessageQ is fail.\n");
-        
-        // free the memory pool
-        osPoolFree(g_tAppMemPoolId, ptMsgPool);
-        goto done;
-    }
-    
-    tRet = osOK;
-
-done:
-    return tRet;
-}
-
-

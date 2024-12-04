@@ -1,0 +1,609 @@
+BLE Master Application
+
+                                                                                                     2024/7/29
+
+                                 旺凌科技 OPULINKS
+                            Outline
+
+BLE Scan
+BLE GATT Client (Central)
+BLE Heart Rate Collector
+
+                            OPULINKS TECH. LTD. CONFIDENTIAL
+BLE Stack
+
+      OPULINKS TECH. LTD. CONFIDENTIAL
+                         GAP Role
+
+GAP Roles
+
+Broadcaster - The device is an advertiser that is non connectable.
+Observer - The device scans for advertisements but cannot initiate connections.
+Peripheral - The device is an advertiser that is connectable and operates as slave in a single
+
+                 link-layer connection.
+Central - The device scans for advertisements and initiates connections and operates as a master
+
+                  in a single or multiple link-layer connections.
+
+                                                                                                            OPULINKS TECH. LTD. CONFIDENTIAL
+                         BLE Scanning
+
+Scanning Basics
+
+When not connected, Bluetooth devices can either advertise their presence by
+transmitting advertisement packets or scan for nearby devices that are
+advertising. This process of scanning for devices is called device discovery.
+There are two types of scanning; active and passive. The difference is that an
+active scanner can send a scan request to request additional information from
+the advertiser, while a passive scanner can only receive data from advertising
+device.
+Note that the terms discovery and scanning may be used interchangeably. The
+figure below shows the sequence where the scanner sends a scan request to
+an advertiser during an advertising event.
+
+                                                                                                            OPULINKS TECH. LTD. CONFIDENTIAL
+                         Scan interval and windows
+
+Example of an advertiser (peripheral) and a scanner (central)
+
+                                            Scan interval
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+Scan message sequence
+
+   application                                                OPL2500
+(ble_scan_app.c)                                              BLE Host
+
+                                   BLE_APP_MSG_INITIALIZING
+                 LeHostInit()
+
+                                 LE_CM_MSG_INIT_COMPLETE_CFM
+
+LeGapSetScanParameter()
+                  LE_CM_MSG_SET_SCAN_PARAMS_CFM
+
+LeGapSetScanEnable()
+                   LE_CM_MSG_ENTER_SCANNING_CFM
+
+                                                                   Scanning start
+
+           LE_CM_MSG_ADVERTISE_REPORT_IND (bdaddr, rssi, data)
+           LE_CM_MSG_ADVERTISE_REPORT_IND (bdaddr, rssi, data)
+           LE_CM_MSG_ADVERTISE_REPORT_IND (bdaddr, rssi, data)
+
+                          # App stop scanning
+LeGapSetScanDisable()
+
+                          # Scanning timeout
+               LE_CM_MSG_EXIT_SCANNING_CFM
+
+OPULINKS TECH. LTD. CONFIDENTIAL
+                         Scan parameters
+
+Setting Scan parameters
+
+   LE_ERR_STATE LeGapSetScanParameter(LE_GAP_SCAN_PARAM_T *params)
+
+Scan Parameter                    Description
+Scan Interval                     Interval between the start of two consecutive scan windows
+Scan Window                       The duration in which the Link Layer scans on one channel
+
+OPULINKS TECH. LTD. CONFIDENTIAL
+                         Scan parameters (cont.)
+
+Scan windows & interval
+
+  • Default value (refer to Nordic setting)
+
+  • Android Scan setting profile.
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                                      Scan parameters (cont.)
+
+GAP Scanner Duplicate Filter   Duplicate filtering disabled.
+
+LE_HCI_SCAN_DUPLICATE_DISABLE  Duplicate filtering enabled
+LE_HCI_SCAN_DUPLICATE_ENABLE   Duplicate filtering enabled, reset for each
+LE_HCI_SCAN_DUPLICATE_PERIOD   scan period.
+
+GAP Scanner Filter Policy.            Accept all advertising packets except directed advertising packets not addressed to this device.
+
+LE_HCI_SCAN_FILT_NONE                 1. Accept only advertising packets from devices where the advertiser's address is in the whitelist.
+LE_HCI_SCAN_FILT_WHITELIST            2. Directed advertising packets which are not addressed to this device shall be ignored.
+
+LE_HCI_SCAN_FILT_UNDIRECT_INITA_RPA   1. undirected advertisement packets, and
+                                      2. directed advertising packets where the initiator address is a resolvable private address, and
+LE_HCI_SCAN_FILT_WHITELIST_INITA_RPA  3. directed advertising packets addressed to this device.
+
+                                      1. advertisement packets from devices where the advertiser’s address is in the White list, and
+                                      2. directed advertising packets where the initiator address is a resolvable private address, and
+                                      3. directed advertising packets addressed to this device.
+
+                                      OPULINKS TECH. LTD. CONFIDENTIAL
+                         Scan parameters (cont.)
+
+Start /Stop Scanning
+
+    LE_ERR_STATE LeGapSetScanEnable(BOOL filter) // filter: Scanner Duplicate Filter
+    LE_ERR_STATE LeGapSetScanDisable(void)
+
+Others APP control setting
+
+                             APP control setting               N sec, 0 Scan Indefinitely
+                                                               BLE_APP_SCAN_FILTER_TYPE_MAC
+                             Scan duration                     BLE_APP_SCAN_FILTER_TYPE_NAME
+                             Scan filter type
+                                                               Duplicate filtering enabled or disable
+                             Scanner Duplicate Filter
+
+                             OPULINKS TECH. LTD. CONFIDENTIAL
+                   Scan Results
+
+Get Scan results
+
+                   OPULINKS TECH. LTD. CONFIDENTIAL
+GATT Client
+
+                           CONFIDENTIAL
+                         GATT Client-Server Model
+
+GATT describes a service framework using the Attribute Protocol (ATT) to discover, read, write,
+ notify and indicate characteristics, as well as to configure the broadcast of characteristics. GATT is
+ designed for an application or another profile to communicate with a peer device.
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Attribute Protocol(ATT)
+
+Attribute:
+
+  Attributes is the smallest data entity of GATT (also ATT). GATT (ATT) can run only through
+  attributes, so all information of client and server must be organized through this format.
+
+ATT Attribute format:
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Services
+
+Service Declaration Attribute
+
+Include Declaration Attribute
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                                 Characteristics
+
+Characteristic Definition
+
+  (1)Characteristic declaration
+
+                                 OPULINKS TECH. LTD. CONFIDENTIAL
+                            Characteristics (cont.)
+
+Characteristic Properties
+
+                            OPULINKS TECH. LTD. CONFIDENTIAL
+                         Characteristics
+
+(2) Characteristic Value Declaration
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Characteristic
+
+(3) Characteristic Descriptor Declarations
+
+    Characteristic Descriptors are like additional supplementary information of data, after the characteristic value attribute,
+     and each descriptor is a single attribute, and there are two types: official (GATT-defined descriptors) and unofficial
+     (Profile or vendor-defined descriptors).
+
+    Client Characteristic Configuration Descriptor(CCCD):
+   Generally speaking, client accesses (reads and writes) the characteristics of the server. The server can also directly tell the
+   client the value of its characteristic. This function is called notify &Indicate. Compared with the original operation, it will
+   only be sent when data needs to be transmitted. , saving server power consumption. The function of CCCD is to set the
+   client's willingness to receive notify and indicate.
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Characteristics
+
+Characteristic Extended Properties Descriptors
+
+Characteristic User Description Descriptors
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Characteristics
+
+Client Characteristic Configuration Descriptors(CCCD)
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Generic Attribute Profile (GATT)
+
+GATT profile hierarchy
+Profile
+Services and Characteristics
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Generic Attribute Profile (GATT)
+
+Services and Characteristics
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                                     GATT procedures
+
+The available Attribute Protocol methods are described in the table below:
+
+Procedure                            Sub-Procedures
+
+Server Configuration                 Exchange MTU
+
+Primary Service Discovery            Discovery All Primary Service
+                                     Discover Primary Service by Service UUID
+
+Relationship Discovery               Find Included Services
+
+Characteristic Discovery             Discover All Characteristics of a Service
+                                     Discover Characteristics by UUID
+
+Characteristic Descriptor Discovery  Discover All Characteristic Descriptors
+
+Characteristic Value Read            Read Characteristic Value
+Characteristic Value Write           Read Using Characteristic UUID
+                                     Read Long Characteristic Values
+                                     Read Multiple Characteristic Values
+
+                                     Write Without Response
+                                     Write Without Response With Authentication
+                                     Write Characteristic Value
+                                     Write Long Characteristic Values Reliable Writes
+
+Characteristic Value Notifications   Notifications
+
+Characteristic Value Indications     Indications
+
+Characteristic Descriptors                             Read Characteristic Descriptors
+                                                       Read Long Characteristic Descriptors
+                                                       Write Characteristic Descriptors
+                                     OPULINKS TECH. LTDW. CrOitNeFILDoEnNTgIACLharacteristic Descriptors
+                         GATT Attribute Table
+
+Shows the attribute table in the “gatt_server” example via TI Btool
+
+  • \APS_PATCH\examples\bluetooth\gatt_server
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         GATT Client Simple Example
+
+This example demonstrates a GATT Client connection and service discovery
+ Step:
+
+  • Set scan , connection parameter and target device address
+  • Start scanning
+  • Get scan result
+  • Connect to target peripheral
+  • Discover all primary services
+  • Discover all characteristic descriptors
+  • Read GAP GATT service’s “Device name”
+
+  use “gatt server” example as slave
+  • \APS_PATCH\examples\bluetooth\gatt_server
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+         GATT Client Simple Example
+
+ Flow:
+
+         OPULINKS TECH. LTD. CONFIDENTIAL
+                      BLE Connection Sequence
+
+ble_master_app.c                                         OPL2500
+                                                         LE Host
+
+                                                                                     Scanning
+
+                      LE_CM_MSG_ADVERTISE_REPORT_IND (bdaddr, rssi, data)
+
+Target address match
+
+                            LeGapSetScanDisable()
+                      LE_CM_MSG_EXIT_SCANNING_CFM
+
+                            # BLE scanning complete
+
+                            LeGapCentralCreateConnect()
+                      LE_CM_MSG_CONNECTION_COMPLETE_IND
+
+                      # BLE connect complete
+
+                      OPULINKS TECH. LTD. CONFIDENTIAL
+                         BLE Connection Parameters
+
+• Connection parameters
+
+Parameter                Values                                    Description
+Min Connection Interval  Range: 0x6~0xC80, Time = N * 1.25ms
+Max Connection Interval  7.5ms to 4s                               Minimum allowed connection interval
+Slave Latency            Range: 0x6~0xC80, Time = N * 1.25ms
+                         7.5ms to 4s                               Maximum allowed connection interval
+
+                         0~499 * connection intervals              The amount of connection events that the peripheral is
+
+Supervision Timeout      Range: 0x000A to 0x0C80 Time = N * 10 ms  (slave) allowed to skip if it has no data to send.
+                         100ms~32s
+                                                                   The maximum amount of time between two successful
+                                                                   connection events. If this time passes without a
+                                                                   successful connection event, the device terminates the
+                                                                   connection and returns to an unconnected state
+
+• Effective Connection Interval example
+
+   • Effective Connection Interval = (Connection Interval) * (1 + [Slave Latency])
+
+      • Connection Interval: 80 (100 ms)
+      • Slave Latency: 4
+      • Effective Connection Interval: (100 ms) * (1 + 4) = 500 ms
+      When no data is being sent from the slave to the master, the slave transmits during a connection event once every 500 ms.
+
+                         OPULINKS TECH. LTD. CONFIDENTIAL
+                        BLE Connection Sequence
+
+• Set scan and connection parameter
+
+• Enable automatic connection if a peer with the given address is found
+
+                                                                                                         OPULINKS TECH. LTD. CONFIDENTIAL
+                     BLE Connection Sequence
+
+ Step:
+
+  • Set scan filter
+
+                     OPULINKS TECH. LTD. CONFIDENTIAL
+                         BLE Connection Sequence
+
+ Connect to GATT server log:
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                  Service and Characteristic Discovery
+
+ble_master_app.c                                    OPL2500
+                                                    LE Host
+
+   LE_CM_MSG_CONNECTION_COMPLETE_IND
+                # BLE connect complete
+
+             LeGattFindAllPrimaryService()
+         LE_GATT_MSG_SERVICE_INFO_IND
+LE_GATT_MSG_FIND_ALL_PRIMARY_SERVICE_CFM
+
+             LeGattFindAllCharDescriptor()
+  LE_GATT_MSG_CHAR_DESCRIPTOR_INFO_IND
+    LE_GATT_MSG_FIND_ALL_CHAR_DESC_CFM
+
+                  OPULINKS TECH. LTD. CONFIDENTIAL
+Discover Attribute Results
+
+                                             2 primary services are found
+
+1801: GAP Service
+
+ 4 characteristic
+
+1800: GATT Service
+
+      OPULINKS TECH. LTD. CONFIDENTIAL
+                         Read Attribute Value
+
+ Read GAP Service device name value:
+
+   • LE_ERR_STATE LeGattReadLongCharVal(UINT16 conn_hdl, UINT16 handle, UINT16 offset)
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+BLE Heart Rate Collector
+
+                                                                    CONFIDENTIAL
+                         Heart Rate Central example
+
+Scenario description
+
+  • Created two peripheral devices, one provides a battery service only and another provides a
+    heart rate service.
+
+  • The central device will scan nearby peripherals to see if any of them provide a service UUID
+    that matches one we are interested in, and then connect to retrieve it.
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                          Heart Rate Profile                                  Central
+
+Collector Central device & Sensor Peripheral device
+
+                                                        Service UUID: 0x180D
+
+                                                                 I’m here
+
+                    Peripheral device 1
+
+                           Heart Rate Service
+                           Battery Service
+
+Peripheral device 2                               1. Scan & discover the remote service
+                                                      (0x180D) we wish to connect to.
+Battery Service
+                                                  2. Connect
+                            Service UUID: 0x180F
+
+OPULINKS TECH. LTD. CONFIDENTIAL
+                         Heart Rate Central example
+
+Example description
+
+  • The Heart Rate Collector application implements the Collector role for the Heart Rate Profile. It scans
+     peripheral devices, connects to the device advertising with Heart Rate Service UUID in its advertisement
+     report, and discovers and configures the Heart Rate Service to start sending Notifications of Heart Rate
+     Measurement. The Heart Rate Measurement received is logged on UART interface. This application will
+     also discover and configure Battery Service at the peer.
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         GATT Data Exchange
+
+GATT data in/out exchange
+
+                              connected
+
+Peripheral       GATT Server                                    Central  GATT Client
+
+                                                                Discover Services
+
+                                                                Discover Characteristics
+                                                                Read Characteristics
+
+Battery service                                                 Enable Notification
+
+Battery Level    NR
+
+Heart Rate Sensor                                                        Heart Rate Collector
+
+                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Heart Rate Service
+
+Use nRF Connect app on smartphone, scan
+ and connect to the Heart Sensor device,
+ you should see that the service and
+ characteristic shown in the screenshot.
+
+                                             Enable HRM notification
+                         Heart Rate Service
+
+Find Heart Rate Sensor attribute table via TI Btool
+
+                                                      Battery level cccd
+                                                      HRM cccd
+
+OPULINKS TECH. LTD. CONFIDENTIAL
+                         Test Command
+
+Example provides Test Command:
+
+  at+blediscon - trigger disconnection
+  at+blescanreq - trigger scan
+  at+blecfguuid=“16bit-UUID” - ex: “0D18”, set remote service UUID we want to connect to it
+
+  at+blehrsnty = 0 or 1 - configure heart rate measurement notification (write HRM characteristic
+  CCCD)
+  at+blehrsnty ? read configuration of heart rate measurement notification
+
+  at+blebasnty = 0 or 1 - configure battery level notification (cccd)
+  at+blebasnty? Read configuration of battery level notification
+  at+blebasread? Read battery level value
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Heart Rate Collector example
+
+ Example flow
+ Step:
+
+  • Set scan , connection parameter and target service UUID
+  • Start scanning
+  • Get scan result and find target service UUID
+  • Connect to target peripheral
+  • Discover all primary services
+  • Discover all characteristic descriptors
+  • Read GAP GATT service’s “Device name”
+  • Characteristic Read/Write/Notify operation
+  • Disconnect the devices, for example execute “at+blediscon” on the Central, the central
+
+    automatically reconnect and that Heart Rate measurements are displayed on the UART.
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         Test the example
+
+Setup:
+
+  • Set remote service we are interested in.
+  • Set scan filter type as “UUID”
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+                         BLE Connection Sequence
+
+ Connect to GATT server log:
+
+   Peripheral device advertising
+
+•  with Heart Rate Service UUID 0x1800
+
+   OPULINKS TECH. LTD. CONFIDENTIAL
+                         Discover Attribute Results
+
+ Discover Service and Characteristic log:
+
+                                                                      4 primary services are found
+
+                                                                                                                                                       GAP Service
+                                                                                                                                                        GATT Service
+                                                                                                                                                       Battery Service
+                                                                                                                                                       Heart Rate service
+
+                                                                                                              OPULINKS TECH. LTD. CONFIDENTIAL
+        Subscribe Char. Notification
+
+ Central - Enable HRM Notification              Central – Heart Rate Collector
+
+  • at+blehrsnty = 1                                        Heart Rate Measurement cccd handle=19
+
+                 Peripheral- Heart Rate Sensor
+
+                                         Notify
+
+                                         Notify
+
+Notify                                           Heart Rate Measurement value handle=18
+
+                                                 Central – AT Command
+
+                                                 write HRM characteristic CCCD
+                                                 read HRM characteristic CCCD
+                                                 response: 2bytes, value:0x0001
+
+        OPULINKS TECH. LTD. CONFIDENTIAL
+        Subscribe Char. Notification
+
+ Central - Disable HRM Notification            Central – Heart Rate Collector
+                                                                                         Central – AT Command
+  • at+blehrsnty = 0
+                                                                                write HRM characteristic CCCD
+                 Peripheral- Heart Rate Sensor                                  read HRM characteristic CCCD
+
+                                    Notify                                       response: 2bytes, value:0x0000
+
+Notify
+
+        OPULINKS TECH. LTD. CONFIDENTIAL
+                               Subscribe Char. Notification
+
+ Central - Enable Battery Level Notification
+
+  • at+blebasnty = 1
+
+Peripheral- Heart Rate Sensor                  Central – Heart Rate Collector
+
+Notify                                                           Batter Level value handle=14
+Notify
+                                                                                                    Central – AT Command
+                               OPULINKS TECH. LTD. CONFIDENTIAL
+                                                                                         Disable HRM notification
+                                                                                          write BL characteristic CCCD
+                                                                                          read BL characteristic CCCD
+
+                                                                                          response: 2bytes, value:0x0001
+Read Char. Value
+
+ Central - Read Battery Level value               Central – Heart Rate Collector
+
+  • at+blebasread?
+
+                 Peripheral- Heart Rate Sensor
+
+                                    Read Response
+
+OPULINKS TECH. LTD. CONFIDENTIAL                                                           Central – AT Command
+
+                                                                                   read BL characteristic value
+                                                                                   Response 1byte, value:0x64
+

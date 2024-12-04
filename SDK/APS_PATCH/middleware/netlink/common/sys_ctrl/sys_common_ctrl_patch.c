@@ -18,8 +18,47 @@ int sys_set_tca(uint8_t enable)
 
     ret = sys_cfg_tca_set((void *)&tca_cfg);
 
-    if( ret )
-        return 0;
+    if( ret == SYS_CFG_OK)
+        return true;
+    else
+        return -1;
+}
+
+int sys_set_msq_clk(uint8_t u8ClkIdx, uint8_t u8Div)
+{
+    int ret;
+    T_MsqClkCfg msqclk_cfg = {u8ClkIdx, u8Div};
+
+    ret = sys_cfg_msq_clk_set((void *)&msqclk_cfg);
+
+    if( ret == SYS_CFG_OK)
+        return true;
+    else
+        return -1;
+}
+
+int sys_set_dto(uint16_t u16para, uint16_t u16val)
+{
+    int ret;
+    T_DtoCfg dto_cfg = {u16para, u16val};
+
+    ret = sys_cfg_dto_set((void *)&dto_cfg);
+
+    if( ret == SYS_CFG_OK)
+        return true;
+    else
+        return -1;
+}
+
+int sys_set_ra(uint8_t u8Index, int8_t s8val)
+{
+    int ret;
+    T_RACfg ra_cfg = {u8Index, s8val};
+
+    ret = sys_cfg_ra_set((void *)&ra_cfg);
+
+    if( ret == SYS_CFG_OK)
+        return true;
     else
         return -1;
 }

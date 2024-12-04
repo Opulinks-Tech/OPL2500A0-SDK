@@ -40,6 +40,7 @@ Head Block of The File
 #include <string.h>
 #include "sys_init.h"
 #include "hal_system.h"
+#include "hal_flash.h"
 #include "mw_fim.h"
 #include "mw_fim_default_group01.h"
 #include "cmsis_os.h"
@@ -52,6 +53,8 @@ Head Block of The File
 #include "freertos_cmsis.h"
 #include "at_cmd_common.h"
 #include "at_cmd_task.h"
+#include "sys_common_ctrl.h"
+#include "sys_cfg.h"
 
 #include "iperf_example_main.h"
 
@@ -131,13 +134,17 @@ C Functions
 *************************************************************************/
 void __Patch_EntryPoint(void)
 {
+    #ifdef ENABLE_FLASH_WRITE_PROTECTION
+    Hal_WriteProtectControlSet(ENABLE);
+    #endif /* ENABLE_FLASH_WRITE_PROTECTION */
+    
     // don't remove this code
     SysInit_EntryPoint();
 
 #ifdef SWITCH_TO_32K_RC
     /* Not needs to setup, OPL2500 will auto detect 32k XTAL
      * When not found 32k XTAL, it will use 32k RC */
-#endif 
+#endif
     // update the pin mux
     Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
 
@@ -196,7 +203,7 @@ static void Main_HeapPatchInit(void)
           {         0,      0},
           {         0,      0}
     };
-    
+
     osMemoryPoolUpdate(PartitionMemoryTable);
 }
 
@@ -424,8 +431,34 @@ static void at_cmd_switch_uart1_dbguart_patch(void)
 *************************************************************************/
 static void Main_AppInit_patch(void)
 {
-    Hal_Sys_ApsClkTreeSetup(APS_CLK_SYS_SRC_DECI_160M_BB, APS_CLK_SYS_DIV_2, APS_CLK_PCLK_DIV_2);
+    int ret;
+
     Hal_Sys_ScrtSrcSelect(ASP_CLK_SCRT_SRC_DECI_160M_BB, APS_CLK_SCRT_DIV_1);
+
+    // APS_CLK 80MHz, set in task mode
+
+    // MSQ_Clk 53MHz
+    ret = sys_set_msq_clk(SYS_CFG_MSQ_CLK_DECI, MSQ_CLK_DIV_3);
+    if(ret == true)
+        printf("\n[MSQ_CLK]:50 MHz\n");
+    else
+        printf("\n[MSQ_CLK]:set fail\n");
+
+    // Set TCA on, th = 1
+    /*
+    ret = sys_set_tca(1);
+    if(ret == true)
+        printf("\n[TCA]:TCA ON\n");
+    else
+        printf("\n[TCA]:Enable TCA Fail\n");
+    */
+    T_TcaCfg tca_cfg = {1,1}; // Adjust TH = 1
+    ret = sys_cfg_tca_set((void *)&tca_cfg);
+    if(ret == SYS_CFG_OK)
+        printf("\n[TCA]:TCA ON\n");
+    else
+        printf("\n[TCA]:Enable TCA Fail\n");
+    printf("\n");
 
     AppInit();
 }

@@ -39,6 +39,7 @@ Head Block of The File
 #include <string.h>
 #include "sys_init.h"
 #include "hal_system.h"
+#include "hal_flash.h"
 #include "mw_fim.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
@@ -51,7 +52,7 @@ Head Block of The File
 #include "boot_sequence.h"
 #include "freertos_cmsis.h"
 #include "at_cmd_common.h"
-
+#include "hal_i2c.h"
 #include "example.h"
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
@@ -107,9 +108,13 @@ C Functions
 *************************************************************************/
 void __Patch_EntryPoint(void)
 {
+    #ifdef ENABLE_FLASH_WRITE_PROTECTION
+    Hal_WriteProtectControlSet(ENABLE);
+    #endif /* ENABLE_FLASH_WRITE_PROTECTION */
+    
     // don't remove this code
     SysInit_EntryPoint();
-
+    
 #ifdef SWITCH_TO_32K_RC
     /* Not needs to setup, OPL2500 will auto detect 32k XTAL
      * When not found 32k XTAL, it will use 32k RC */
@@ -277,6 +282,12 @@ static void Main_FlashLayoutUpdate(void)
 static void Main_MiscModulesInit(void)
 {
     //Hal_Wdt_Stop();   //disable watchdog here.
+    
+    
+    /* Initialize I2C here for both cold boot and warm boot */
+    Hal_I2c_MasterInit(I2C_07BIT, I2C_SPEED_STANDARD);
+    //Hal_I2c_MasterInit(I2C_07BIT, I2C_SPEED_FAST);
+    Hal_I2c_TargetAddrSet( 0x57 );
 }
 
 /*************************************************************************

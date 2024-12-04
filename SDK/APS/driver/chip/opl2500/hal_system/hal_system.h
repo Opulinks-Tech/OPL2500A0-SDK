@@ -234,8 +234,8 @@ typedef uint32_t (*T_Hal_Sys_RetRamCtrlBySeq)(uint32_t u32RetRamIdxs);
 typedef uint32_t (*T_Hal_Sys_MsqRomRemapAll)(uint8_t u8Enable);
 
 /* Miscellaneous */
-typedef uint32_t (*T_Hal_Sys_SramDffBypass)(uint8_t u8Enable);
-typedef uint32_t (*T_Hal_Sys_XipDffBypass)(uint8_t u8Enable);
+//typedef uint32_t (*T_Hal_Sys_SramDffBypass)(uint8_t u8Enable);
+//typedef uint32_t (*T_Hal_Sys_XipDffBypass)(uint8_t u8Enable);
 typedef uint32_t (*T_Hal_Sys_SwDebugEn)(uint8_t u8Enable);
 typedef uint32_t (*T_Hal_Sys_StrapModeRead)(void);
 typedef uint32_t (*T_Hal_Sys_StrapModeOverWrite)(uint8_t u8Enable, uint8_t u8StrapMode);
@@ -294,8 +294,8 @@ extern T_Hal_Sys_RetRamCtrlBySeq        Hal_Sys_RetRamCtrlBySeq;
 extern T_Hal_Sys_MsqRomRemapAll         Hal_Sys_MsqRomRemapAll;
 
 /* Miscellaneous */
-extern T_Hal_Sys_SramDffBypass          Hal_Sys_SramDffBypass;
-extern T_Hal_Sys_XipDffBypass           Hal_Sys_XipDffBypass;
+//extern T_Hal_Sys_SramDffBypass          Hal_Sys_SramDffBypass;
+//extern T_Hal_Sys_XipDffBypass           Hal_Sys_XipDffBypass;
 extern T_Hal_Sys_SwDebugEn              Hal_Sys_SwDebugEn;
 extern T_Hal_Sys_StrapModeRead          Hal_Sys_StrapModeRead;
 extern T_Hal_Sys_StrapModeOverWrite     Hal_Sys_StrapModeOverWrite;
@@ -308,8 +308,8 @@ extern T_Hal_Sys_SpareRegWriteBit       Hal_Sys_SpareRegWriteBit;
 extern T_Hal_Sys_OtpRead                Hal_Sys_OtpRead;
 
 
-uint32_t Hal_Sys_SramDffBypass_impl(uint8_t u8Enable);
-uint32_t Hal_Sys_XipDffBypass_impl(uint8_t u8Enable);
+//uint32_t Hal_Sys_SramDffBypass_impl(uint8_t u8Enable);
+//uint32_t Hal_Sys_XipDffBypass_impl(uint8_t u8Enable);
 uint32_t Hal_Sys_SwDebugEn_impl(uint8_t u8Enable);
 uint32_t Hal_Sys_StrapModeRead_impl(void);
 uint32_t Hal_Sys_StrapModeOverWrite_impl(uint8_t u8Enable, uint8_t u8StrapMode);

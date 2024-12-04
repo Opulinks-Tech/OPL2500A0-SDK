@@ -11,9 +11,9 @@
  *******************************************************************************
  *
  *  @file le_ctrl_patch.h
- * 
- *  @brief 
- *  
+ *
+ *  @brief
+ *
  ******************************************************************************/
 
 #ifndef _LE_CTRL_PATCH_H_
@@ -38,8 +38,8 @@ extern "C" {
  */
 
 /* For instrument to directly tx/rx HCI commands/events via uart. */
-// #define DEFAULT_UART_HCI_MODE 
-    
+// #define DEFAULT_UART_HCI_MODE
+
 
 /*
  *************************************************************************
@@ -60,10 +60,12 @@ extern "C" {
  *                          Public Functions
  *************************************************************************
  */
-// le_ctrl_func_map 
+// le_ctrl_func_map
 void le_ctrl_pre_patch_init(void);
 
 // le_ctrl_cmd
+void le_ctrl_throughput_test_patch(uint8_t tx_octets, uint8_t duration);
+void vendor_specific_throughput_test_command_patch(hci_command_packet_01 *cmd_packet);
 
 // le_ctrl_data
 
@@ -79,7 +81,7 @@ void le_ctrl_init_patch(void);
 // le_ctrl_hci_handler
 
 // le_ctrl_hci_uart_tl
-    
+
 
 #ifdef __cplusplus
 }

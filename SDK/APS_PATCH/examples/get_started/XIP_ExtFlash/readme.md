@@ -5,7 +5,6 @@ The layout of XIP content needs to pre-defined in Boot Agent and SDK.
 
 # Work Flow
 - Add define `OPL2500_XIP` and `OPL2500_EXT_FLASH` to project
-- A counter is inceasing  in Thread1 and its value is send to message queue. Thread2 received message , get counter's value and print it out.  
 - Boot Agent also needs to build specific image.
 
 
@@ -16,11 +15,15 @@ The layout of XIP content needs to pre-defined in Boot Agent and SDK.
    
    In example project
      - Add define `OPL2500_XIP` and `OPL2500_EXT_FLASH` to project
-     
+     - Add following to __Patch_EntryPoint, must called before SysInit_EntryPoint
         ```c
-        Main_PinMuxUpdate(); /* Init SPI pin-mux first */
+        if (!Boot_CheckWarmBoot())
+        {
+            Main_PinMuxUpdate_flash(); /* Init flash pin-mux first */
+        }
         Sys_XipSetup(XIP_MODE_EXT_FLASH, SPI_SLAVE_1, 0);
         ```
+     -  Update link.ld to XIP version
    Download
      - Using PatchData_XIP.txt to pack APS and MSQ binary files except XIP binary file.
      - Download application binary file
@@ -40,7 +43,7 @@ The layout of XIP content needs to pre-defined in Boot Agent and SDK.
         void BA_PinmuxUpdate(void)
         {
             /* Update Pinmux for external flash here */
-            Hal_Pin_Config(PIN_TYPE_SPI0_CS1_IO3  | PIN_DRVCRNT_IO3_4mA | PIN_INMODE_IO3_FLOATING);
+            Hal_Pin_Config(PIN_TYPE_SPI0_CS2_IO9  | PIN_DRVCRNT_IO9_4mA | PIN_INMODE_IO9_FLOATING);
             Hal_Pin_Config(PIN_TYPE_SPI0_IO2_IO10 | PIN_DRVCRNT_IO10_8mA | PIN_INMODE_IO10_PULL_UP);
             Hal_Pin_Config(PIN_TYPE_SPI0_IO3_IO11 | PIN_DRVCRNT_IO11_8mA | PIN_INMODE_IO11_PULL_UP);
             Hal_Pin_Config(PIN_TYPE_SPI0_CLK_IO13 | PIN_DRVCRNT_IO13_8mA | PIN_INMODE_IO13_FLOATING);

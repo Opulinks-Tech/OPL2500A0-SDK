@@ -117,8 +117,8 @@ T_Hal_Sys_RetRamCtrlBySeq       Hal_Sys_RetRamCtrlBySeq         = Hal_Sys_RetRam
 T_Hal_Sys_MsqRomRemapAll        Hal_Sys_MsqRomRemapAll          = Hal_Sys_MsqRomRemapAll_impl;
 
 /* Miscellaneous */
-T_Hal_Sys_SramDffBypass         Hal_Sys_SramDffBypass           = Hal_Sys_SramDffBypass_impl;
-T_Hal_Sys_XipDffBypass          Hal_Sys_XipDffBypass            = Hal_Sys_XipDffBypass_impl;
+//T_Hal_Sys_SramDffBypass         Hal_Sys_SramDffBypass           = Hal_Sys_SramDffBypass_impl;
+//T_Hal_Sys_XipDffBypass          Hal_Sys_XipDffBypass            = Hal_Sys_XipDffBypass_impl;
 T_Hal_Sys_SwDebugEn             Hal_Sys_SwDebugEn               = Hal_Sys_SwDebugEn_impl;
 T_Hal_Sys_StrapModeRead         Hal_Sys_StrapModeRead           = Hal_Sys_StrapModeRead_impl;
 T_Hal_Sys_StrapModeOverWrite    Hal_Sys_StrapModeOverWrite      = Hal_Sys_StrapModeOverWrite_impl;
@@ -176,23 +176,23 @@ C Functions
 * GLOBALS AFFECTED
 *
 *************************************************************************/
-uint32_t Hal_Sys_SramDffBypass_impl(uint8_t u8Enable)
-{
-    if (u8Enable)
-    {
-        SYS->SRAM_BYPASS |= (SYS_SRAM_BYPASS_APS_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_WR_FF_BYPASS|
-                            SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_WR_FF_BYPASS);
-    }
-    else
-    {
-        SYS->SRAM_BYPASS &= ~(SYS_SRAM_BYPASS_APS_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_WR_FF_BYPASS|
-                            SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_WR_FF_BYPASS);
-    }
-    /* Avoid immediately access RAM after setting bypass SRAM */
-    __ISB();
-    __DSB();
-    return 0;
-}
+//uint32_t Hal_Sys_SramDffBypass_impl(uint8_t u8Enable)
+//{
+//    if (u8Enable)
+//    {
+//        SYS->SRAM_BYPASS |= (SYS_SRAM_BYPASS_APS_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_WR_FF_BYPASS|
+//                            SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_WR_FF_BYPASS);
+//    }
+//    else
+//    {
+//        SYS->SRAM_BYPASS &= ~(SYS_SRAM_BYPASS_APS_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_APS_SRAM_WR_FF_BYPASS|
+//                            SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF1_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_RD_FF2_BYPASS|SYS_SRAM_BYPASS_SHARE_SRAM_WR_FF_BYPASS);
+//    }
+//    /* Avoid immediately access RAM after setting bypass SRAM */
+//    __ISB();
+//    __DSB();
+//    return 0;
+//}
 
 /*************************************************************************
 * FUNCTION:
@@ -212,21 +212,21 @@ uint32_t Hal_Sys_SramDffBypass_impl(uint8_t u8Enable)
 * GLOBALS AFFECTED
 *
 *************************************************************************/
-uint32_t Hal_Sys_XipDffBypass_impl(uint8_t u8Enable)
-{
-    if (u8Enable)
-    {
-        SYS->SRAM_BYPASS |= SYS_SRAM_BYPASS_QSPI_RD_FF_BYPASS;
-    }
-    else
-    {
-        SYS->SRAM_BYPASS &= ~SYS_SRAM_BYPASS_QSPI_RD_FF_BYPASS;
-    }
-    /* Avoid immediately access XIP after setting bypass XIP */
-    __ISB();
-    __DSB();
-    return 0;
-}
+//uint32_t Hal_Sys_XipDffBypass_impl(uint8_t u8Enable)
+//{
+//    if (u8Enable)
+//    {
+//        SYS->SRAM_BYPASS |= SYS_SRAM_BYPASS_QSPI_RD_FF_BYPASS;
+//    }
+//    else
+//    {
+//        SYS->SRAM_BYPASS &= ~SYS_SRAM_BYPASS_QSPI_RD_FF_BYPASS;
+//    }
+//    /* Avoid immediately access XIP after setting bypass XIP */
+//    __ISB();
+//    __DSB();
+//    return 0;
+//}
 
 
 /*************************************************************************

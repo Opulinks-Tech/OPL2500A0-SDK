@@ -8,19 +8,26 @@ SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_auxadc/hal_auxadc_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_flash_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_qspi_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_spi_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_spi_dma.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_psram_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_spi/hal_cache_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_system/hal_sys_rcc_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_gpio/hal_pin_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_gpio/hal_gpio_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_vic/hal_vic_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_uart/hal_uart_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_dma/hal_dma_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/driver/chip/opl2500/hal_i2c/hal_i2c_patch.o
 #lwip
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/lwip_helper_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/ports/rom_if/lwip_jmptbl_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/lwip/src/core/memp_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/lwip/src/core/pbuf_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/lwip/src/core/ipv4/dhcp_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/lwip/src/core/tcp_in_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/lwip/src/core/tcp_patch.o
 SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/ports/freertos/netif/wlannetif_patch.o
+SDK_SRC += $(ROOT)/APS_PATCH/middleware/third_party/lwip-2.0.3/ports/opl_option/opl_lwipopts_patch.o
 #http_client
 SDK_SRC += $(ROOT)/APS/middleware/third_party/httpclient/httpclient.o
 #mw_fim

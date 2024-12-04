@@ -26,6 +26,7 @@
 #include "hal_uart.h"
 #include "hal_sys_rcc.h"
 #include "hal_system.h"
+#include "hal_spi.h"
 /*
  *************************************************************************
  *                          Definitions and Macros
@@ -51,6 +52,9 @@ typedef struct
 void ExceptionDumpStack(uint32_t u32RegPsp, uint32_t u32RegMsp, uint32_t u32RegLr);
 void HardFault_Handler_Entry_patch(void);
 void IPC0_IRQHandler_Entry_patch(void);
+void SPI1_IRQHandler_Entry_patch(void);
+void SPI2_IRQHandler_Entry_patch(void);
+void SPI3_IRQHandler_Entry_patch(void);
 /*
  *************************************************************************
  *                          Public Variables
@@ -82,7 +86,10 @@ void IPC0_IRQHandler_Entry_patch(void);
 void Irq_PatchInit(void)
 {
     HardFault_Handler_Entry = HardFault_Handler_Entry_patch;
-    IPC0_IRQHandler_Entry   = IPC0_IRQHandler_Entry_patch;
+    IPC0_IRQHandler_Entry = IPC0_IRQHandler_Entry_patch;
+    SPI1_IRQHandler_Entry = SPI1_IRQHandler_Entry_patch;
+    SPI2_IRQHandler_Entry = SPI2_IRQHandler_Entry_patch;
+    SPI3_IRQHandler_Entry = SPI3_IRQHandler_Entry_patch;
 }
 
 /*
@@ -96,6 +103,7 @@ void HardFault_Handler_Entry_patch(void)
     Hal_Sys_ResetStatusClear(0xFFFFFFFF);
     if (Hal_Uart_EnStatusGet(UART_IDX_DBG))
     {
+        int32_t s32MaxWaitTick = SystemCoreClockGet() / 100;  //10ms
         Hal_Uart_WakeupResume(UART_IDX_DBG);
         tracer_drct_printf("Hard fault\n");
         tracer_drct_printf("0xE000ED00: %08X %08X %08X %08X\n", 
@@ -117,6 +125,13 @@ void HardFault_Handler_Entry_patch(void)
 //        {
 //            while (1);
 //        }
+         while (1)
+         {
+             if (Hal_Uart_StatusGet(UART_IDX_DBG, UART_STATUS_TX_FIFO_EMPTY))
+                 break;
+             if (s32MaxWaitTick-- <= 0)
+                 break;
+         }
     }
     Hal_Sys_SwResetAll();
 }
@@ -142,4 +157,38 @@ void IPC0_IRQHandler_Entry_patch(void)
                         pMsqHfSts->Stack[4], pMsqHfSts->Stack[5], pMsqHfSts->Stack[6], pMsqHfSts->Stack[7]);
     
     Hal_Sys_SwResetAll();
+}
+
+
+void SPI1_IRQHandler_Entry_patch(void)
+{
+    Hal_Spi_IntHandler(SPI_IDX_1);
+
+    // Clear module interrupt
+    Hal_Spi_IntClearAll(SPI_IDX_1);
+
+    // Clear VIC interrupt
+    Hal_Vic_IntClear(SPI1_IRQn);
+}
+
+void SPI2_IRQHandler_Entry_patch(void)
+{
+    Hal_Spi_IntHandler(SPI_IDX_2);
+
+    // Clear module interrupt
+    Hal_Spi_IntClearAll(SPI_IDX_2);
+
+    // Clear VIC interrupt
+    Hal_Vic_IntClear(SPI2_IRQn);
+}
+
+void SPI3_IRQHandler_Entry_patch(void)
+{
+    Hal_Spi_IntHandler(SPI_IDX_3);
+
+    // Clear module interrupt
+    Hal_Spi_IntClearAll(SPI_IDX_3);
+
+    // Clear VIC interrupt
+    Hal_Vic_IntClear(SPI3_IRQn);
 }

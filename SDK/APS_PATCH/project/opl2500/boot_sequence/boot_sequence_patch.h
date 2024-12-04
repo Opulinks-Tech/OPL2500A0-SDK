@@ -63,6 +63,12 @@ void Boot_HwPatchInit(void);
 void Boot_PrepareM0PatchOK_patch(void);
 void Boot_RtcSelect32kRc(void);
 
+/**
+ * @brief To write XTAL frequency to flash
+ * @param u32XtalFreq[in] XTAL frequency. i.e. 20MHz = 20000000 (0x1312d00)
+ */
+void Boot_FixXtalFreqCfg(uint32_t u32XtalFreq);
+
 #ifdef __cplusplus
 }
 #endif

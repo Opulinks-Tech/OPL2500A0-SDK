@@ -43,6 +43,7 @@ Head Block of The File
 #include "boot_sequence.h"
 #include "hal_uart.h"
 #include "hal_pin.h"
+#include "hal_flash.h"
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
@@ -51,6 +52,8 @@ Head Block of The File
                                                      SYS_UART_SCLK_FON_APS_UART_CLK_FON_Msk | \
                                                      SYS_UART_SCLK_FON_MSQ_UART_CLK_FON_Msk)
 #define SYS_UART_SCLK_FON_SET_VALUE                 (0)
+
+#define FLASH_STS1_WP_LOCK_MSK                      0x7C
 
 /********************************************
 Declaration of data structure
@@ -67,7 +70,12 @@ extern char Image$$RW_IRAM1$$ZI$$Base[];
 
 
 // Sec 5: declaration of global function prototype
-
+void BA_FlashWriteProtectProcess(void);
+uint32_t _Hal_Flash_Status1Get_impl(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t *pu32Status);
+uint32_t _Hal_Flash_Status2Get_impl(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint32_t *pu32Status);
+uint32_t _Hal_Flash_StatusSet_impl(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint8_t u8Sts_1, uint8_t u8Sts_2);
+uint32_t _Hal_Flash_WriteDoneCheck_impl(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx);
+uint32_t _Hal_Flash_CmdSend_impl(E_SpiIdx_t eSpiIdx, E_SpiSlave_t eSlvIdx, uint8_t u8Opcode);
 
 /***************************************************
 Declaration of static Global Variables & Functions
@@ -106,11 +114,14 @@ void BA_main(void)
     // for cold boot only
     if (0 != Boot_CheckWarmBoot())
         return;
+    _Hal_Flash_CmdSend_impl(SPI_IDX_0, SPI_SLAVE_0, FLASH_CMD_WRITE_DISABLE);
+    BA_FlashWriteProtectProcess();
     
+    Hal_Flash_PatchInit();
     MwOta_PatchInit();
 #ifdef OPL2500_EXT_FLASH
     BA_PinmuxUpdate();
-    MwOta_ExtFlashInit(SPI_SLAVE_1, MW_OTA_EXT_IMAGE_ADDR_PATCH_START, MW_OTA_EXT_IMAGE_SIZE_PATCH);
+    MwOta_ExtFlashInit(SPI_SLAVE_2, MW_OTA_EXT_IMAGE_ADDR_PATCH_START, MW_OTA_EXT_IMAGE_SIZE_PATCH);
 #endif /* OPL2500_EXT_FLASH */
     
     Hal_Uart_PatchInit();
@@ -136,11 +147,39 @@ void BA_main(void)
     Boot_BeforeApplyPatch = Boot_BeforeApplyPatch_impl;
 }
 
+#ifdef ENABLE_FLASH_WRITE_PROTECTION
+void BA_FlashWriteProtectProcess(void)
+{
+    uint32_t u32Status[2];
+    
+    Hal_WriteProtectControlSet(ENABLE);
+    
+    _Hal_Flash_Status1Get_impl(SPI_IDX_0, SPI_SLAVE_0, &u32Status[0]);
+    _Hal_Flash_Status2Get_impl(SPI_IDX_0, SPI_SLAVE_0, &u32Status[1]);
+    //printf("Fsts:%02X,%02X\n", u32Status[0], u32Status[1]);
+    if ((u32Status[0] & FLASH_STS1_WP_LOCK_MSK) != FLASH_STS1_WP_LOCK_MSK)
+    {
+        u32Status[0] |= FLASH_STS1_WP_LOCK_MSK;
+        _Hal_Flash_StatusSet_impl(SPI_IDX_0, SPI_SLAVE_0, u32Status[0], u32Status[1]);
+        _Hal_Flash_WriteDoneCheck_impl(SPI_IDX_0, SPI_SLAVE_0);
+        //_Hal_Flash_Status1Get_impl(SPI_IDX_0, SPI_SLAVE_0, &u32Status[0]);
+        //_Hal_Flash_Status2Get_impl(SPI_IDX_0, SPI_SLAVE_0, &u32Status[1]);
+        //printf("  -> %02X,%02X\n", u32Status[0], u32Status[1]);
+    }
+}
+#else
+void BA_FlashWriteProtectProcess(void)
+{
+}
+#endif /* ENABLE_FLASH_WRITE_PROTECTION */
+
+
+
 #ifdef OPL2500_EXT_FLASH
 void BA_PinmuxUpdate(void)
 {
     /* Update Pinmux for external flash here */
-    Hal_Pin_Config(PIN_TYPE_SPI0_CS1_IO3  | PIN_DRVCRNT_IO3_4mA | PIN_INMODE_IO3_FLOATING);
+    Hal_Pin_Config(PIN_TYPE_SPI0_CS2_IO9  | PIN_DRVCRNT_IO9_4mA | PIN_INMODE_IO9_FLOATING);
     Hal_Pin_Config(PIN_TYPE_SPI0_IO2_IO10 | PIN_DRVCRNT_IO10_8mA | PIN_INMODE_IO10_PULL_UP);
     Hal_Pin_Config(PIN_TYPE_SPI0_IO3_IO11 | PIN_DRVCRNT_IO11_8mA | PIN_INMODE_IO11_PULL_UP);
     Hal_Pin_Config(PIN_TYPE_SPI0_CLK_IO13 | PIN_DRVCRNT_IO13_8mA | PIN_INMODE_IO13_FLOATING);

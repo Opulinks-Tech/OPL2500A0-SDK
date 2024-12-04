@@ -10,9 +10,9 @@
  *
  *******************************************************************************
  *
- *  @file hal_system_patch.h 
- * 
- *  
+ *  @file hal_system_patch.h
+ *
+ *
  *******************************************************************************/
 #ifndef __HAL_SYSTEM_H__
 #error "Please include hal_system.h. Don't directly include hal_system_patch.h"
@@ -37,7 +37,7 @@ extern "C" {
  *                          Definitions and Macros
  *************************************************************************
  */
-/* Spare register usage 
+/* Spare register usage
  * [AOS]
  * SPARE0@0x10C: IPC sync usage
  * SPARE1@0x124: HW use
@@ -50,19 +50,25 @@ extern "C" {
  * SPARE3@0x270: [Patch] System status
  * SPARE4@0x274: [Patch] MSQ hard fault MSP
  * SPARE5@0x278: [Patch] OTA status
- * SPARE6@0x27C:
+ * SPARE6@0x27C: [Patch] Beacon debug
  * SPARE7@0x280:
  * SPARE8@0x284:
+ * [RAM]
+ * 0x00400100 ~ 0x0040010F: OTA status
+ * 0x00400110: Wi-Fi S2ST length
+ *
  */
-    
+
 #define Hal_Sys_RetRamTurnOff   Hal_Sys_RetRamTurnOff_patch
-    
-    
+
+
 #define SYSTEM_SPARE_REG_SYSTEM_STATUS                  (SYS->SPARE3)
 #define HAL_SYS_SET_SYSTEM_STATUS(bitpos, bitvalue)     (BIT_SET(SYSTEM_SPARE_REG_SYSTEM_STATUS, (bitpos), (bitvalue)?1:0))
 
 #define SYSTEM_SPARE_REG_MSQ_MSP                        (SYS->SPARE4)
 #define SYSTEM_SPARE_REG_OTA_STATUS                     (SYS->SPARE5)
+#define SYSTEM_SPARE_REG_BCN_DBG1                       (SYS->SPARE6)
+#define SYSTEM_SPARE_REG_BCN_DBG2                       (SYS->SPARE7)
 
 #define SYSTEM_STATUS_XTAL_ALIGNED_BIT                  (0UL)
 #define SYSTEM_STATUS_XTAL_ALIGNED_TO_MHZ_DONE          1
@@ -75,6 +81,11 @@ extern "C" {
  */
 
 
+typedef enum
+{
+    WAIT_STATE_ZERO = 0,
+    WAIT_STATE_ONE,
+} APS_WAIT_STATE;
 
 /*
  *************************************************************************
@@ -91,6 +102,9 @@ extern "C" {
 void Hal_Sys_PatchInit(void);
 void Hal_Sys_PatchVerInit(uint32_t u32VerInfoAddr);
 
+void Hal_Sys_WaitStateSet(APS_WAIT_STATE u32WaitState);
+uint32_t Hal_Sys_WaitStateGet(void);
+uint32_t Hal_Sys_WaitStateCalc(uint32_t u32SysClock);
 
 #ifdef __cplusplus
 }

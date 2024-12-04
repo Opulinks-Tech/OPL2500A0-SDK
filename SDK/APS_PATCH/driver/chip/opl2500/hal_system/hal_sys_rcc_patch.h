@@ -84,9 +84,17 @@ typedef enum
     VAR_SRC_200M
 } E_ApsVarSrc_t;
 
+typedef enum
+{
+    EZ_CLK_MODE_LOW_POWER,
+    EZ_CLK_MODE_CPU_PERFORMANCE,
+    EZ_CLK_MODE_HIGH_THROUGHPUT,
+} E_EzClkMode_t;
+
 typedef struct {
     uint32_t u32Var150Clk;
 }S_APS_CLK_FREQ_EXT;
+
 /*
  *************************************************************************
  *                          Public Variables
@@ -111,6 +119,7 @@ void Hal_Sys_Xtal32DetectStart(void);
 void Hal_Sys_Xtal32DetectEnd(void);
 void Hal_Sys_Xtal32CalcStart(void);
 void Hal_Sys_Xtal32CalcEnd(void);
+uint32_t Hal_Sys_EzClkModeSelect(E_EzClkMode_t eMode);
 
 #ifdef __cplusplus
 }

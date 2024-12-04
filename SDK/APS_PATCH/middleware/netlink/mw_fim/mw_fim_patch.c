@@ -117,6 +117,7 @@ uint8_t MwFim_GroupBlockDrop_patch(uint32_t ulStartAddr)
         goto done;
 
     // erase the group block
+    u32Signature = 0;
     if (0 != Hal_Flash_AddrProgram_Ext(g_MwFim_FlashCtrlCfg.eSpiIdx, g_MwFim_FlashCtrlCfg.eSlvIdx, ulStartAddr, 0, sizeof(u32Signature), (uint8_t *)&u32Signature))
         goto done;
 

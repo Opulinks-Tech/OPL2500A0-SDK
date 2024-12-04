@@ -18,17 +18,6 @@
 
 #include "data_flow.h"
 
-//typedef enum
-//{
-//    M3_MSG_RSP = 0,
-//    M3_MSG_RF_CFG_SET,
-//    M3_MSG_TS_CFG_SET,
-//    M3_MSG_AUXADC_CFG_SET,
-//    M3_MSG_AUXADC_REQ,
-
-//    M3_MSG_MAX
-//} T_M3MsgType;
-
 typedef enum
 {
     RF_EVT_COME = RF_EVT_MAX,
@@ -36,8 +25,33 @@ typedef enum
     RF_EVT_MAX_NEW,
 } T_RfCmdEvtType_EXT;
 
-#define M3_MSG_TCA_SET      M3_MSG_MAX
-#define M3_MSG_PATCH_MAX    (M3_MSG_MAX + 1)
+typedef enum
+{
+    M3_MSG_TCA_SET = M3_MSG_MAX,
+    M3_MSG_MSQ_IPC_DESC_SET,
+    M3_MSG_MSQ_SYSCLK_SET,
+
+    M3_MSG_PTA_SET,
+    M3_MSG_BCN_EN_SET,
+    M3_MSG_DTO_SET,
+    M3_MSG_AMPDU_SET,
+    M3_MSG_RA_SET,
+
+    M3_MSG_MAX_PATCH
+} T_M3MsgTypePatch;
+
+typedef enum
+{
+    M0_MSG_AUTO_ARP_SET = M0_MSG_MAX,
+
+    M0_MSG_MAX_PATCH
+} T_M0MsgTypePatch;
+
+typedef struct
+{
+    uint32_t u32Timeout;
+    uint8_t u8Enable;
+} T_AutoArpCfg;
 
 void Agent_PatchInit(void);
 

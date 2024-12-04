@@ -210,6 +210,8 @@ INCDIR += -I $(ROOT)/APS_PATCH/apps/le_app/pts_app
 #############   source    ##############
 M_SRC  = ./main_patch.o
 M_SRC += ./example.o
+M_SRC += ./spi_master_data.o
+M_SRC += ./spi_slave_data.o
 
 #############   build   ##############
 all: $(M_SRC)

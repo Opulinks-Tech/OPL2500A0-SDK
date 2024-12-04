@@ -1,4 +1,31 @@
 ﻿## Release Version:
+SDK Package: MP_1.003.008.002
+Patch_Lib : 6948
+
+## Release Date: 2024/11/25
+
+## Function & Feature Update 
+1. Documents updating:
+   1.1 NONE
+   
+2. Tool version information and update:
+   2.1 NONE
+
+3. Demo update:
+   3.1 NONE
+   
+4. Examples update:
+   4.1 NONE
+   
+
+## Bug Fix List 
+   - 0003591: [SVT][OPL2500SP][SDK03008]DUT will show hard fault when doing BLE setdata+WIFI connection
+   - 0003592: [SVT][OPL2500SP][SDK03008]DUT will show Wifi disconnection reason 501 when doing BLE setdata+WIFI connection
+   - 0003593: [SVT][OPL2500SP][SDK03008]DUT will show AT task Run message allocate fail when doing BLE setdata+WIFI connection
+
+
+
+## Release Version:
 SDK Package: MP_1.003.001
 Patch_Lib : 6635
 

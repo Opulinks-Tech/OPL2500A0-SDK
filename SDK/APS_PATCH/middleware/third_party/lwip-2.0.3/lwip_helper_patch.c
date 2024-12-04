@@ -132,11 +132,65 @@ void lwip_tcpip_init_patch(void)
     wifi_mac_register_rxcb(&netif, lwip_wlan_sta_input);
 #endif
 
-	netif_set_up(&netif);
-
-    //netif_set_link_callback(&netif, lwip_netif_link_irq);
-    //netif_set_status_callback(&netif, lwip_netif_status_irq);
+    netif_set_up(&netif);
 }
+
+void lwip_net_start_patch(uint8_t opmode)
+{
+    if (tcpip_inited == false)
+        return;
+
+    LWIP_UNUSED_ARG(opmode);
+
+    switch(opmode) {
+        case WIFI_MODE_STA_ONLY:
+            if(dhcp_config_init() == STA_IP_MODE_DHCP) {
+                //sta_if = netif_find_by_type(NETIF_TYPE_STA);
+                netif_set_default(&netif);
+                //netif_set_link_up(&netif);
+                netif_set_status_callback(&netif, ip_ready_callback);
+                #if LWIP_DHCP
+                tcpip_callback_with_block((tcpip_callback_fn)dhcp_start, &netif, 1);
+                #endif
+            }
+            else
+            {
+                netif_set_link_up(&netif);
+            }
+            break;
+        case WIFI_MODE_AP_ONLY: {
+            break;
+        }
+    }
+
+
+}
+
+
+void lwip_net_stop_patch(uint8_t opmode)
+{
+    if (tcpip_inited == false)
+        return;
+
+    switch (opmode) {
+        case WIFI_MODE_AP_ONLY:
+            break;
+        case WIFI_MODE_STA_ONLY:
+            netif_set_status_callback(&netif, NULL);
+            if(dhcp_config_init() == STA_IP_MODE_DHCP) {
+                #if LWIP_DHCP
+                tcpip_callback_with_block((tcpip_callback_fn)dhcp_release, &netif, 1);
+                tcpip_callback_with_block((tcpip_callback_fn)dhcp_stop, &netif, 1);
+                #endif
+            }
+            else
+            {
+                netif_set_link_down(&netif);
+            }
+            break;
+    }
+}
+
 
 /*-------------------------------------------------------------------------------------
  * Interface assignment
@@ -145,5 +199,7 @@ void lwip_load_interface_lwip_helper_patch(void)
 {
     ip_ready_callback = ip_ready_callback_patch;
     lwip_tcpip_init   = lwip_tcpip_init_patch;
+    lwip_net_stop     = lwip_net_stop_patch;
+    lwip_net_start    = lwip_net_start_patch;
 }
 

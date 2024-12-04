@@ -190,4 +190,6 @@ uint32_t Hal_I2c_SlaveIntTxEn_impl(uint8_t u8Enable);
 uint32_t Hal_I2c_SlaveIntRxEn_impl(uint8_t u8Enable);
 void Hal_I2c_SlaveIntTxCallBackFuncSet_impl(T_Hal_I2c_SlaveIntTxCallBack tFunc);
 void Hal_I2c_SlaveIntRxCallBackFuncSet_impl(T_Hal_I2c_SlaveIntRxCallBack tFunc);
+
+#include "hal_i2c_patch.h"
 #endif

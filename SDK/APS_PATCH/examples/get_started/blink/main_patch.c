@@ -39,6 +39,7 @@ Head Block of The File
 #include <string.h>
 #include "sys_init.h"
 #include "hal_system.h"
+#include "hal_flash.h"
 #include "mw_fim.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
@@ -114,6 +115,10 @@ C Functions
 *************************************************************************/
 void __Patch_EntryPoint(void)
 {
+    #ifdef ENABLE_FLASH_WRITE_PROTECTION
+    Hal_WriteProtectControlSet(ENABLE);
+    #endif /* ENABLE_FLASH_WRITE_PROTECTION */
+    
     // don't remove this code
     SysInit_EntryPoint();
 

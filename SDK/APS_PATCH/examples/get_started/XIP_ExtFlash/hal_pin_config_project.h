@@ -1,12 +1,12 @@
 /* *****************************************************************************
- *  Copyright 2017 - 2021, Opulinks Technology Ltd.
+ *  Copyright 2017 - 2023, Opulinks Technology Ltd.
  *  ----------------------------------------------------------------------------
  *  Statement:
  *  ----------
  *  This software is protected by Copyright and the information contained
  *  herein is confidential. The software may not be copied and the information
  *  contained herein may not be used or disclosed except with the written
- *  permission of Opulinks Technology Ltd. (C) 2021
+ *  permission of Opulinks Technology Ltd. (C) 2023
  ******************************************************************************/
 
 /******************************************************************************
@@ -149,7 +149,7 @@ Head Block of The File
                                                  * *********************************** */
 
 
-#define HAL_PIN_TYPE_PATCH_IO_3               (PIN_TYPE_SPI0_CS1_IO3        | PIN_DRVCRNT_IO3_4mA   | PIN_INMODE_IO3_FLOATING)
+#define HAL_PIN_TYPE_PATCH_IO_3               (PIN_TYPE_GPIO_DISABLE_IO3        | PIN_DRVCRNT_IO3_2mA   | PIN_INMODE_IO3_FLOATING)
                                                 /* ***********************************
                                                  *     PIN_TYPE_APS_UART_RTS_N_IO3
                                                  *     PIN_TYPE_CAM_DATA0_IO3
@@ -214,7 +214,7 @@ Head Block of The File
                                                  * *********************************** */
 
 
-#define HAL_PIN_TYPE_PATCH_IO_5               (PIN_TYPE_GPIO_DISABLE_IO5           | PIN_DRVCRNT_IO5_2mA   | PIN_INMODE_IO5_FLOATING)
+#define HAL_PIN_TYPE_PATCH_IO_5               (PIN_TYPE_APS_UART_TXD_IO5           | PIN_DRVCRNT_IO5_2mA   | PIN_INMODE_IO5_FLOATING)
                                                 /* ***********************************
                                                  *     PIN_TYPE_APS_UART_TXD_IO5
                                                  *     PIN_TYPE_CAM_DATA2_IO5
@@ -348,7 +348,7 @@ Head Block of The File
                                                  * *********************************** */
 
 
-#define HAL_PIN_TYPE_PATCH_IO_9               (PIN_TYPE_GPIO_DISABLE_IO9        | PIN_DRVCRNT_IO9_2mA   | PIN_INMODE_IO9_FLOATING)
+#define HAL_PIN_TYPE_PATCH_IO_9               (PIN_TYPE_SPI0_CS2_IO9        | PIN_DRVCRNT_IO9_4mA   | PIN_INMODE_IO9_FLOATING)
                                                 /* ***********************************
                                                  *     PIN_TYPE_APS_UART_CTS_N_IO9
                                                  *     PIN_TYPE_CAM_DATA6_IO9
@@ -755,7 +755,7 @@ Head Block of The File
                                                  * *********************************** */
 
 
-#define HAL_PIN_TYPE_PATCH_IO_22              (PIN_TYPE_APS_UART_TXD_IO22       | PIN_DRVCRNT_IO22_12mA | PIN_INMODE_IO22_FLOATING)
+#define HAL_PIN_TYPE_PATCH_IO_22              (PIN_TYPE_GPIO_DISABLE_IO22       | PIN_DRVCRNT_IO22_12mA | PIN_INMODE_IO22_FLOATING)
                                                 /* ***********************************
                                                  *     PIN_TYPE_APS_UART_TXD_IO22
                                                  *     PIN_TYPE_CAM_XVCLK_IO22

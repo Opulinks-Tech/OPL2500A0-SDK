@@ -42,6 +42,9 @@ Head Block of The File
 #define REFINE_TX_PROC          //defined: enable tx-one-copy
 #define REFINE_RX_PROC      2   //0:original / 1:simplify-decryption / 2:simplify-decryption + rx-one-copy
 
+#define WIFI_TPUT
+//#define PTA_FEATURE
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -158,8 +161,10 @@ extern "C" {
 /* If XIP not enabled, no specific section */
 #undef XIP_TEXT
 #undef XIP_RODATA
+#undef FORCE_RAM_TEXT 
 #define XIP_TEXT
 #define XIP_RODATA
+#define FORCE_RAM_TEXT 
 #endif /* OPL2500_XIP */
     
 #ifndef  OPL2500_PSRAM 

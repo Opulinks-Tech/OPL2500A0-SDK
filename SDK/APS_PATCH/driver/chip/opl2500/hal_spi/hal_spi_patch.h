@@ -31,7 +31,7 @@ extern "C" {
  *                          Include files
  *************************************************************************
  */
-
+#include "hal_spi_dma.h"
 /*
  *************************************************************************
  *                          Definitions and Macros
@@ -71,6 +71,7 @@ typedef enum
  */
 E_HAL_SPI_STATUS Hal_Spi_ReadStatus(E_SpiIdx_t eSpiIdx);
 uint32_t Hal_Spi_ResetFifo(E_SpiIdx_t eSpiIdx);
+void Hal_Spi_IntHandler(E_SpiIdx_t eSpiIdx);
 
 #ifdef __cplusplus
 }

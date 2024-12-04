@@ -10,10 +10,10 @@
  *
  *******************************************************************************
  *
- *  @file sys_cfg_patch.h 
- * 
+ *  @file sys_cfg_patch.h
+ *
  *  @brief System configuration patch
- *  
+ *
  *******************************************************************************/
 #ifndef __SYS_CFG_H__
 #error "Please include sys_cfg.h. Don't directly include sys_cfg_patch.h"
@@ -37,6 +37,9 @@ extern "C" {
  *                          Definitions and Macros
  *************************************************************************
  */
+#define SYS_CFG_OK    (0)
+#define SYS_CFG_NG    (-1)
+
 // Re-define T_SysCfgClkIdx
 #define SYS_CFG_CLK_XTAL            ( SYS_CFG_CLK_22_MHZ )
 #define SYS_CFG_CLK_XTAL_X2         ( SYS_CFG_CLK_44_MHZ )
@@ -58,6 +61,17 @@ extern "C" {
 #define SYS_CFG_CLK_DECI_160_MHZ    ( SYS_CFG_CLK_176_MHZ )
 #define SYS_CFG_CLK_DECI_080_MHZ    ( SYS_CFG_CLK_176_MHZ + 1 )
 
+// Define for T_MsqClkCfg->u8MsqClkIdx
+#define SYS_CFG_MSQ_CLK_XTAL        (1)
+#define SYS_CFG_MSQ_CLK_XTAL_X2     (2)
+#define SYS_CFG_MSQ_CLK_DECI        (3)
+
+// Define for T_MsqClkCfg->u8Div
+#define MSQ_CLK_DIV_1               (1)
+#define MSQ_CLK_DIV_2               (2)
+#define MSQ_CLK_DIV_3               (3)
+#define MSQ_CLK_DIV_4               (4)
+
 /*
  *************************************************************************
  *                          Typedefs and Structures
@@ -69,6 +83,42 @@ typedef struct
     uint8_t u8TcaThr;
 } T_TcaCfg;
 
+typedef struct
+{
+    uint8_t u8MsqClkIdx;
+    uint8_t u8Div;
+} T_MsqClkCfg;
+
+#ifdef PTA_FEATURE
+typedef struct
+{
+    uint8_t u8ReqIo;
+    uint8_t u8PrioIo;
+    uint8_t u8GrantIo;
+} T_PtaIoCfg;
+#endif
+
+typedef struct
+{
+    uint16_t u16DtoPara;
+    uint16_t u16DtoParaVal;
+} T_DtoCfg;
+
+typedef struct
+{
+    uint8_t u8Index;
+    int8_t s8Value;
+} T_RACfg;
+
+typedef enum
+{
+    ConsSuccThr = 0,
+    ConsFailThr,
+    RateRetryThr,
+    RtsThr,
+    RetryTotal,
+    RandomRate
+} T_DtoPara;
 
 /*
  *************************************************************************
@@ -83,6 +133,16 @@ typedef struct
  *************************************************************************
  */
 int sys_cfg_tca_set(void *pCfg);
+int sys_cfg_ipc_desc_set(void *pCfg, uint32_t u32Len);
+int sys_cfg_msq_clk_set(void *pCfg);
+int sys_cfg_dto_set(void *pCfg);
+int sys_cfg_ampdu_set(void *pCfg, uint32_t u32Len);
+int sys_cfg_ra_set(void *pCfg);
+
+#ifdef PTA_FEATURE
+int sys_cfg_pta_set(void *pCfg, uint32_t u32Len);
+#endif
+int sys_cfg_bcn_enhance_set(void *pCfg, uint32_t u32Len);
 
 void sys_cfg_patch_init(void);
 

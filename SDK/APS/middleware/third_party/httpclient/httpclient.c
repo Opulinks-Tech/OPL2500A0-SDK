@@ -60,7 +60,7 @@
 
 #define HTTPCLIENT_AUTHB_SIZE     128
 
-#define HTTPCLIENT_CHUNK_SIZE     512
+#define HTTPCLIENT_CHUNK_SIZE     2048
 #define HTTPCLIENT_SEND_BUF_SIZE  512
 
 #define HTTPCLIENT_MAX_HOST_LEN   64
@@ -666,9 +666,12 @@ int httpclient_recv(httpclient_t *client, char *buf, int min_len, int max_len, i
         if (ret > 0) {
             readLen += ret;
         } else if (ret == 0) {
-            break;
+            printf("Connection close ret %d, errno =%d\n", ret, errno);
+            *p_read_len = readLen;
+            return HTTPCLIENT_ERROR_CONN;
+            //break;
         } else {
-            ERR("Connection error (recv returned %d)", ret);
+            printf("Connection error (recv returned %d), errno =%d\n", ret, errno);
             *p_read_len = readLen;
             return HTTPCLIENT_ERROR_CONN;
         }
@@ -994,7 +997,7 @@ HTTPCLIENT_RESULT httpclient_connect(httpclient_t *client, char *url)
         }
     }
 
-    DBG("http?:%d, port:%d, host:%s", client->is_http, client->remote_port, host);
+    printf("http?:%d, port:%d, host:%s\n", client->is_http, client->remote_port, host);
 
 #ifdef HTTPCLIENT_TIME_DEBUG
     start_time = sys_now();
@@ -1047,12 +1050,18 @@ HTTPCLIENT_RESULT httpclient_send_request(httpclient_t *client, char *url, int m
     return (HTTPCLIENT_RESULT)ret;
 }
 
+char chunkbuf[HTTPCLIENT_CHUNK_SIZE] = {0}; // char buf[HTTPCLIENT_CHUNK_SIZE*2] = {0};
+
+
 HTTPCLIENT_RESULT httpclient_recv_response(httpclient_t *client, httpclient_data_t *client_data)
 {
     int reclen = 0;
     int ret = HTTPCLIENT_ERROR_CONN;
     // TODO: header format:  name + value must not bigger than HTTPCLIENT_CHUNK_SIZE.
-    char buf[HTTPCLIENT_CHUNK_SIZE] = {0}; // char buf[HTTPCLIENT_CHUNK_SIZE*2] = {0};
+    //char buf[HTTPCLIENT_CHUNK_SIZE] = {0}; // char buf[HTTPCLIENT_CHUNK_SIZE*2] = {0};
+
+    char *buf = chunkbuf;
+    //memset(buf, 0, HTTPCLIENT_CHUNK_SIZE);
 
     if (client->socket < 0) {
         return (HTTPCLIENT_RESULT)ret;

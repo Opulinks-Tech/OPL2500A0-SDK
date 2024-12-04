@@ -73,12 +73,11 @@ extern "C" {
  */
 typedef enum
 {
-    XIP_MODE_DISABLE=0,
+    XIP_MODE_DISABLE=1,
     XIP_MODE_OTA_BUNDLE,        /* Single flash (internal) */
     XIP_MODE_STAND_ALONE,       /* Single flash (internal) */
     XIP_MODE_EXT_FLASH,         /* !!!!!!! Not support yet. Two flash. XIP in external flash */
     XIP_MODE_EXT_PSRAM,         /* XIP in external PSRAM */
-    XIP_MODE_INVALID,
 } E_XIP_MODE;
 
 

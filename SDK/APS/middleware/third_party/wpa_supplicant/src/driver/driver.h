@@ -48,6 +48,7 @@ struct wpa_driver_scan_params {
     uint16_t scan_time;           /* units: millisecond. */
     uint8_t  loop_scan_by_driver; /* true:loop scan by driver, false: loop scan by MSQ */
     uint8_t  sorting;             /* Sort the scan result */
+    uint8_t  probe_count;         /* Send probe req counter per channel when active scan*/
 };
 
 struct wpa_driver_connect_params {

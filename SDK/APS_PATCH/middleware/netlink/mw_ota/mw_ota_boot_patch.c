@@ -85,6 +85,8 @@ typedef enum
 *                           Declarations of Private Functions
 *************************************************************************
 */
+void Boot_SpiLoadPatch(uint32_t ulStartAddr, uint32_t ulMaxSize, uint8_t ubUseQuadMode);
+uint8_t MwOta_Boot_LoadPatchImage_patch(void);
 uint8_t MwOta_Init_impl(T_MwOtaLayoutInfo *ptInfo, uint8_t ubBoot);
 uint32_t Boot_RecvMultiData(uint8_t *data, uint32_t u32Length);
 
@@ -143,6 +145,7 @@ void MwOta_PatchInit(void)
     memset((void *)&g_tMwOtaLayoutInfoExtFlash, 0, sizeof(g_tMwOtaLayoutInfoExtFlash));
     memset((void *)&g_tMwOtaPrepareHeaderInfoExtFlash, 0, sizeof(g_tMwOtaPrepareHeaderInfoExtFlash));
     
+    MwOta_Boot_LoadPatchImage = MwOta_Boot_LoadPatchImage_patch;
     MwOta_Boot_Init = MwOta_Boot_Init_patch;
     MwOta_Init = MwOta_Init_patch;
     MwOta_Boot_HeaderPaser = MwOta_Boot_HeaderPaser_patch;
@@ -153,6 +156,37 @@ void MwOta_PatchInit(void)
  *                          Private Functions
  *************************************************************************
  */
+
+/*************************************************************************
+* FUNCTION:
+*   MwOta_Boot_LoadPatchImage
+*
+* DESCRIPTION:
+*   load the patch image
+*
+* PARAMETERS
+*   none
+*
+* RETURNS
+*   MW_OTA_OK   : successful
+*   MW_OTA_FAIL : fail
+*
+*************************************************************************/
+uint8_t MwOta_Boot_LoadPatchImage_patch(void)
+{
+    uint32_t ulImageAddr;
+    
+    // get the start address of patch image
+    if (MW_OTA_OK != MwOta_BootAddrGet(&ulImageAddr))
+        return MW_OTA_FAIL;
+    
+    // load the patch image
+    Boot_SpiLoadPatch(ulImageAddr, MW_OTA_IMAGE_SIZE_PATCH, 0);
+    
+    return MW_OTA_OK;
+}
+
+
 
 /*************************************************************************
 * FUNCTION:
@@ -175,11 +209,11 @@ uint8_t MwOta_Boot_Init_patch(void)
     S_MW_OTA_BOOT_STS *psOtaBootSts = (S_MW_OTA_BOOT_STS *)MW_OTA_BOOT_STATUS_DATA_ADDR;
     
     // give the layout information
-    tLayout.ulaHeaderAddr[0] = MW_OTA_HEADER_ADDR_1;
-    tLayout.ulaHeaderAddr[1] = MW_OTA_HEADER_ADDR_2;
-    tLayout.ulaImageAddr[0] = MW_OTA_IMAGE_ADDR_1;
-    tLayout.ulaImageAddr[1] = MW_OTA_IMAGE_ADDR_2;
-    tLayout.ulImageSize = MW_OTA_IMAGE_SIZE;
+    tLayout.ulaHeaderAddr[0] = MW_OTA_HEADER_ADDR_PATCH_1;
+    tLayout.ulaHeaderAddr[1] = MW_OTA_HEADER_ADDR_PATCH_2;
+    tLayout.ulaImageAddr[0] = MW_OTA_IMAGE_ADDR_PATCH_1;
+    tLayout.ulaImageAddr[1] = MW_OTA_IMAGE_ADDR_PATCH_2;
+    tLayout.ulImageSize = MW_OTA_IMAGE_SIZE_PATCH;
     if (MW_OTA_OK != MwOta_Init(&tLayout, 1))
     {
         return MW_OTA_FAIL;

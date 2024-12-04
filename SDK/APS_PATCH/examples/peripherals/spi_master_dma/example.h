@@ -48,20 +48,9 @@ extern "C" {
  *     But if the system clock is too high, maybe over 100MHz, it needs to set wait state for SRAM or it will get error when read or writing SRAM.
  *     Call Hal_Sys_SramDffBypass(0) to set wait state, i.e. disable SRAM DFF bypass.
  */
-#define SPI_BAUDRATE            13333333    /* TRX mode, slave minimum spi bit rate = 160M/12 */
-#define SPI_RX_SAMPLE_DELAY     2       /* Related to SPI rate and physical wire length */
-#define SPI_MASTER_TX_ENABLE    1
-#define SPI_MASTER_RX_ENABLE    1
-#define EN_DATA_CHECKING        (1 & SPI_MASTER_RX_ENABLE)
-#define CALC_BLK_CNT            10000       /* To calculate throughput block counts */
+#define SPI_BAUDRATE            40000000    /* TRX mode, slave minimum spi bit rate = 160M/12 */
+#define SPI_RX_SAMPLE_DELAY     4       /* Related to SPI rate and physical wire length */
 
-#if (!SPI_MASTER_TX_ENABLE && !SPI_MASTER_RX_ENABLE)
-#error "Please enable either TX or RX or both of TRX."
-#endif
-/*************************************************************************************/
-#define STRESS_TEST_MODE        0           /* 1: Stress test, not to calculate throughput.
-                                             * 0: Calculate throughput */
-#define STRESS_TEST_SHORT_REPORT_NUM    5000  /* When TRX how many blocks, report current state */
 
 /*
  *************************************************************************

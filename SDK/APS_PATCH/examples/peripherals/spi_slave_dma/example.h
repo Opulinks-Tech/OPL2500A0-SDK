@@ -35,20 +35,6 @@ extern "C" {
  *************************************************************************
  */
 
-#define SPI_SLAVE_TX_ENABLE     1
-#define SPI_SLAVE_RX_ENABLE     1
-#define EN_DATA_CHECKING        (1 && SPI_SLAVE_RX_ENABLE)
-#define CALC_BLK_CNT            10000       /* To calculate throughput block counts */
-
-#if (!SPI_SLAVE_TX_ENABLE && !SPI_SLAVE_RX_ENABLE)
-#error "Please enable either TX or RX or both of TRX."
-#endif
-
-/*************************************************************************************/
-#define STRESS_TEST_MODE        0           /* 1: Stress test, not to calculate throughput.
-                                             * 0: Calculate throughput */
-#define STRESS_TEST_SHORT_REPORT_NUM    5000  /* When TRX how many blocks, report current state */
-
 /*
  *************************************************************************
  *                          Typedefs and Structures

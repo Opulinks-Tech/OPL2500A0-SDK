@@ -26,6 +26,16 @@
 #include "msg.h"
 #include "opulinks_log.h"
 #include "controller_wifi.h"
+#include "ipc.h"
+#include "sys_cfg.h"
+
+/*
+#define APP_TX_DESC_NUM     32
+#define APP_RX_DESC_NUM     24
+
+#define APP_DESC_POOL_SIZE  ((APP_TX_DESC_NUM + APP_RX_DESC_NUM) * IPC_WIFI_DESC_SIZE)
+#define APP_MEM_POOL_SIZE   (APP_TX_DESC_NUM * IPC_WIFI_APS_TX_MEM_BLK_SIZE + (APP_RX_DESC_NUM - 1) * IPC_WIFI_APS_RX_MEM_BLK_SIZE + IPC_WIFI_APS_RX_LAST_MEM_BLK_SIZE)
+*/
 
 /********************************************
 Declaration of Global Variables & Functions
@@ -43,6 +53,11 @@ Declaration of static Global Variables & Functions
 ***************************************************/
 osThreadId app_task_id;
 static const char *TAG="IPERF";
+
+/*
+static uint8_t g_u8aAppDescPool[APP_DESC_POOL_SIZE] __attribute__((aligned(16))) = {0};
+static uint8_t g_u8aAppMemPool[APP_MEM_POOL_SIZE] __attribute__((aligned(4))) = {0};
+*/
 
 static int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
 {
@@ -146,6 +161,21 @@ static void initial_lwip_options(void)
 
 }
 
+/*
+static void ipc_buf_num_update(void)
+{
+    T_IpcDescCfg tCfg = {0};
+
+    tCfg.u32DescPool = (uint32_t)g_u8aAppDescPool;
+    tCfg.u32MemPool = (uint32_t)g_u8aAppMemPool;
+    tCfg.u32ApsTxNum = APP_TX_DESC_NUM;
+    tCfg.u32ApsRxNum = APP_RX_DESC_NUM;
+
+    ipc_desc_update(&tCfg);
+    sys_cfg_ipc_desc_set(&tCfg, sizeof(tCfg));
+}
+*/
+
 void AppInit(void)
 {
     /* Event Loop Initialization */
@@ -161,6 +191,9 @@ void AppInit(void)
 
     /* Initial/Register commands */
     console_init();
+
+    /* Update number of IPC APS TX/RX buffer */
+    //ipc_buf_num_update();
 
     printf("\n ===========================================\n");
     printf(" |     Start to test WiFi throughput       |\n");

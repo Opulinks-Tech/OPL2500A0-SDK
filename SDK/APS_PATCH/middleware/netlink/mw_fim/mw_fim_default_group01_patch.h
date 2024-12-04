@@ -42,18 +42,20 @@ extern "C" {
 
 // Sec 1: Include File
 #include "sys_cfg.h"
+#include "hal_auxadc.h"
 #include "mw_fim_default_group01.h"
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
-
+#define MW_FIM_IDX_GP01_ADC_OFFSET    (MW_FIM_IDX_GP01_MAX)
 
 
 /******************************
 Declaration of data structure
 ******************************/
 // Sec 3: structure, uniou, enum, linked list
-
+#define MW_FIM_ADC_OFFSET_SIZE    sizeof( T_AdcGpioOffset )
+#define MW_FIM_ADC_OFFSET_NUM     (1)
 
 /********************************************
 Declaration of Global Variables & Functions

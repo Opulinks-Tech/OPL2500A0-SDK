@@ -77,13 +77,6 @@
                                          AOS_APS_DOMAIN_EN_EXT_2IO_CLK_EN)
 #define HAL_SLP_CLK_APS_DOMAIN_EN_SET_VALUE  (0)
 
-#define HAL_SLP_CLK_SCRT_CLK_APS_MSK    (AOS_SCRT_CLK_APS_SCRT_SLV_CLK_APS_EN | \
-                                         AOS_SCRT_CLK_APS_SCRT_GLB_CLK_APS_EN | \
-                                         AOS_SCRT_CLK_APS_APSSCRT_HCLK_APS_EN | \
-                                         AOS_SCRT_CLK_APS_SCRT_PCLK_APS_EN | \
-                                         AOS_SCRT_CLK_APS_SCRT_CORE_CLK_EN | \
-                                         AOS_SCRT_CLK_APS_APSSCRT_CLK_DIVN_EN)
-#define HAL_SLP_CLK_SCRT_CLK_APS_SET_VALUE    (0)
 
 #define HAL_SLP_CLK_APS_STCLK_MSK       (AOS_APS_STCLK_APS_STCLK_SRC_EN)
 #define HAL_SLP_CLK_APS_STCLK_SET_VALUE       (0)
@@ -129,7 +122,6 @@ typedef struct
 {
     uint32_t u32ApsClkSel;      /* AOS->APS_CLK_SEL */
     uint32_t u32ApsDomainEn;    /* AOS->APS_DOMAIN_EN */
-    uint32_t u32ScrtClkAps;     /* AOS->SCRT_CLK_APS */
     uint32_t u32ApsStClk;       /* AOS->APS_STCLK */
     uint32_t u32SpiClkSel;      /* AOS->SPI_CLK_SEL */
     uint32_t u32ApsDmClkSel;    /* AOS->APS_DM_CLK_SEL */
@@ -319,8 +311,6 @@ void Hal_Sys_Xtal32CalcEnd(void)
  *      - ABR
  *      - Pwm
  *      - EXT 2 IO
- *    [SCRT_CLK_APS]
- *      - SCRT global
  *    [SPI_CLK_SEL]
  *      - SPI 1/2/3
  *    [APS_DM_CLK_SEL]
@@ -341,7 +331,6 @@ void Hal_Sys_UnusedModuleDis_patch(void)
 
     AOS->APS_STCLK = AOS_APS_STCLK_VALUE;
     
-    AOS->SCRT_CLK_APS &= ~AOS_SCRT_CLK_APS_SEL_ALL_APS;    
     AOS->APS_DOMAIN_EN &= ~AOS_APS_DOMAIN_EN_ALL_APS;
     AOS->SPI_CLK_SEL &= ~AOS_SPI_123_CLK_SEL_APS;
     AOS->APS_DM_CLK_SEL &= ~AOS_APS_DM_CLK_UNSED_MODULES;
@@ -459,6 +448,7 @@ uint32_t Hal_Sys_ApsClkTreeSetup_patch(E_ApsClkSysSrc_t eSrc, E_ApsClkSrcDivn_t 
 {
     uint32_t u32SysClk = 0, u32Pclk = 0;
     uint8_t u8Div = 0;
+    uint32_t u32TargetWaitState = 0;
     switch (eSrc)
     {
         case APS_CLK_SYS_SRC_RC:
@@ -486,11 +476,28 @@ uint32_t Hal_Sys_ApsClkTreeSetup_patch(E_ApsClkSysSrc_t eSrc, E_ApsClkSrcDivn_t 
     u32SysClk /= APS_CLK_SYS_DIVN_GET(eSysDiv);
     u32Pclk = u32SysClk / APS_CLK_PCLK_DIVN_GET(ePclkDiv);
     
+    /* wait state
+        case 1: 40MHz -> 100MHz
+                wait state: 0 -> 1
+                Set WS1 before clock set
+        case 2: 100MHz -> 40MHz
+                wait state: 1 -> 0
+                Set WS0 after clock set
+        case 3: 40MHz -> 40MHz
+                wait state: 0 -> 0
+        case 3: 100MHz -> 100MHz
+                wait state: 1 -> 1
+    */
+    u32TargetWaitState = Hal_Sys_WaitStateCalc(u32SysClk);
+    if (u32TargetWaitState > Hal_Sys_WaitStateGet())
+    {
+        Hal_Sys_WaitStateSet((APS_WAIT_STATE)u32TargetWaitState);
+    }
     APS_CLK_SYS_SWITCH_TO_SHELTER();
     AOS->APS_CLK_SEL = (AOS->APS_CLK_SEL & ~(AOS_APS_CLK_SEL_APS_SRC_CLK_SEL_Msk | APS_CLK_SYS_DIV_MSK | APS_CLK_PCLK_DIV_MSK) ) |
                         (eSrc << AOS_APS_CLK_SEL_APS_SRC_CLK_SEL_Pos) | eSysDiv | ePclkDiv;
     APS_CLK_SYS_SWITCH_TO_TARGET();
-
+    Hal_Sys_WaitStateSet((APS_WAIT_STATE)u32TargetWaitState);
     // Update system clock.
     Hal_Sys_ApsClockUpdate(APS_CLK_GRP_SYS_SRC, u32SysClk);
     Hal_Sys_ApsClockUpdate(APS_CLK_GRP_PCLK, u32Pclk);
@@ -710,7 +717,6 @@ void Hal_Sys_WakeupClkResume_patch(void)
     /* Recover clocks */
     AOS->APS_CLK_SEL = g_Hal_SysApsClkStorage.u32ApsClkSel;
     AOS->APS_DOMAIN_EN = g_Hal_SysApsClkStorage.u32ApsDomainEn;
-    AOS->SCRT_CLK_APS = g_Hal_SysApsClkStorage.u32ScrtClkAps;
     AOS->APS_STCLK = g_Hal_SysApsClkStorage.u32ApsStClk;
     AOS->SPI_CLK_SEL = g_Hal_SysApsClkStorage.u32SpiClkSel;
     AOS->APS_DM_CLK_SEL = g_Hal_SysApsClkStorage.u32ApsDmClkSel;
@@ -749,7 +755,6 @@ void Hal_Sys_SleepClkSetup_patch(void)
     /* Disable unused clocks, recover when Hal_Sys_WakeupClkResume_patch */
     g_Hal_SysApsClkStorage.u32ApsClkSel = AOS->APS_CLK_SEL;
     g_Hal_SysApsClkStorage.u32ApsDomainEn = AOS->APS_DOMAIN_EN;
-    g_Hal_SysApsClkStorage.u32ScrtClkAps = AOS->SCRT_CLK_APS;
     g_Hal_SysApsClkStorage.u32ApsStClk = AOS->APS_STCLK;
     g_Hal_SysApsClkStorage.u32SpiClkSel = AOS->SPI_CLK_SEL;
     g_Hal_SysApsClkStorage.u32ApsDmClkSel = AOS->APS_DM_CLK_SEL;
@@ -758,7 +763,6 @@ void Hal_Sys_SleepClkSetup_patch(void)
     /* Disable unused clocks */
     AOS->APS_CLK_SEL = (AOS->APS_CLK_SEL & ~HAL_SLP_CLK_APS_CLK_SEL_MSK) | HAL_SLP_CLK_APS_CLK_SEL_SET_VALUE;
     AOS->APS_DOMAIN_EN = (AOS->APS_DOMAIN_EN & ~HAL_SLP_CLK_APS_DOMAIN_EN_MSK) | HAL_SLP_CLK_APS_DOMAIN_EN_SET_VALUE;
-    AOS->SCRT_CLK_APS = (AOS->SCRT_CLK_APS & ~HAL_SLP_CLK_SCRT_CLK_APS_MSK) | HAL_SLP_CLK_SCRT_CLK_APS_SET_VALUE;
     AOS->APS_STCLK = (AOS->APS_STCLK & ~HAL_SLP_CLK_APS_STCLK_MSK) | HAL_SLP_CLK_APS_STCLK_SET_VALUE;
     AOS->SPI_CLK_SEL = (AOS->SPI_CLK_SEL & ~HAL_SLP_CLK_SPI_CLK_SEL_MSK) | HAL_SLP_CLK_SPI_CLK_SEL_SET_VALUE;
     AOS->APS_DM_CLK_SEL = (AOS->APS_DM_CLK_SEL & ~HAL_SLP_CLK_APS_DM_CLK_SEL_MSK) | HAL_SLP_CLK_APS_DM_CLK_SEL_SET_VALUE;
@@ -1085,5 +1089,65 @@ uint32_t Hal_Sys_CamXvClkSrcSelect_patch(E_ApsClkCamXvClkSrc_t eSrc, E_ApsClkCam
     
     Hal_Sys_ApsClockUpdate(APS_CLK_GRP_CAM_XVCLK, u32Clk);
     
+    return RESULT_SUCCESS;
+}
+
+uint32_t Hal_Sys_EzClkModeSelect(E_EzClkMode_t eMode)
+{
+    // refer to OPL2500A0 clocks for best perf (2024_1009)r0.xlsx, 2024/10/09, from Alex's mail
+    switch( eMode )
+    {
+        case EZ_CLK_MODE_LOW_POWER:
+        default:
+            // APS and pclk
+            Hal_Sys_ApsClkTreeSetup( APS_CLK_SYS_SRC_XTAL, APS_CLK_SYS_DIV_1, APS_CLK_PCLK_DIV_1 );
+            // I2C (as pclk)
+            // Scrt
+            Hal_Sys_ScrtSrcSelect( ASP_CLK_SCRT_SRC_XTAL, APS_CLK_SCRT_DIV_1 );
+            // SPI_0
+            Hal_Sys_Spi0SrcSelect( APS_CLK_SPI0_SRC_XTAL, APS_CLK_SPI0_DIV_1 );
+            // UART_0
+            Hal_Sys_Uart0SrcSelect( APS_CLK_UART0_SRC_XTAL);
+            // UART_1
+            Hal_Sys_Uart1SrcSelect( APS_CLK_UART1_SRC_XTAL);
+            break;
+
+        case EZ_CLK_MODE_CPU_PERFORMANCE:
+            // APS and pclk
+            Hal_Sys_ApsClkTreeSetup( APS_CLK_SYS_SRC_DECI_160M_BB, APS_CLK_SYS_DIV_1, APS_CLK_PCLK_DIV_2 );
+            // I2C (as pclk)
+            // Scrt
+            Hal_Sys_ScrtSrcSelect( ASP_CLK_SCRT_SRC_DECI_160M_BB, APS_CLK_SCRT_DIV_2 );
+            // SPI_0
+            Hal_Sys_Spi0SrcSelect( APS_CLK_SPI0_SRC_DECI_160M_BB, APS_CLK_SPI0_DIV_1 );
+            // UART_0
+            Hal_Sys_Uart0SrcSelect( APS_CLK_UART0_SRC_XTAL);
+            // UART_1
+            Hal_Sys_Uart1SrcSelect( APS_CLK_UART1_SRC_XTAL);
+            break;
+
+        case EZ_CLK_MODE_HIGH_THROUGHPUT:
+            // APS and pclk
+            Hal_Sys_ApsClkTreeSetup( APS_CLK_SYS_SRC_150_VAR, APS_CLK_SYS_DIV_1, APS_CLK_PCLK_DIV_2 );
+            // I2C (as pclk)
+            // Scrt
+            Hal_Sys_ScrtSrcSelect( ASP_CLK_SCRT_SRC_DECI_160M_BB, APS_CLK_SCRT_DIV_2 );
+            // SPI_0
+            Hal_Sys_Spi0SrcSelect( APS_CLK_SPI0_SRC_DECI_160M_BB, APS_CLK_SPI0_DIV_1 );
+            // UART_0
+            Hal_Sys_Uart0SrcSelect( APS_CLK_UART0_SRC_XTAL_X2);
+            // UART_1
+            Hal_Sys_Uart1SrcSelect( APS_CLK_UART1_SRC_XTAL_X2);
+            break;
+    }
+    // APS_UART
+    Hal_Sys_ApsUartSrcSelect( APS_CLK_DBG_UART_SRC_XTAL );
+    // SPI_1/2/3
+    Hal_Sys_Spi1SrcSelect( APS_CLK_SPI1_SRC_DECI_160M_BB, APS_CLK_SPI1_DIV_2 );
+    Hal_Sys_Spi2SrcSelect( APS_CLK_SPI2_SRC_DECI_160M_BB, APS_CLK_SPI2_DIV_2 );
+    Hal_Sys_Spi3SrcSelect( APS_CLK_SPI3_SRC_DECI_160M_BB, APS_CLK_SPI3_DIV_2 );
+    // MSQ (?!)
+    // MSQ_UART (?!)
+
     return RESULT_SUCCESS;
 }

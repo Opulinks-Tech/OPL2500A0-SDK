@@ -46,7 +46,11 @@ extern "C" {
  *                          Typedefs and Structures
  *************************************************************************
  */
-
+typedef enum
+{
+    QSPI_DEV_SIZE_8MBIT = 0,
+    QSPI_DEV_SIZE_64MBIT,
+} E_QSPI_DEVICE_SIZE;
 
 
 /*
@@ -54,7 +58,7 @@ extern "C" {
  *                          Public Variables
  *************************************************************************
  */
-extern uint32_t g_u32aHal_QspiRemapAddr[SPI_SLAVE_MAX];
+extern uint32_t g_u32Hal_QspiRemapAddr;
 
 /*
  *************************************************************************
@@ -62,9 +66,9 @@ extern uint32_t g_u32aHal_QspiRemapAddr[SPI_SLAVE_MAX];
  *************************************************************************
  */
 void Hal_Qspi_PatchInit(void);
-void Hal_QSpi_UpdateRemap(E_SpiSlave_t eSlvIdx, uint32_t u32Addr);
-void Hal_QSpi_SetXipCs(E_SpiSlave_t eSlvIdx);
-void Hal_Qspi_RestoreXipCs(void);
+void Hal_QSpi_UpdateRemap(uint32_t u32Addr);
+uint32_t Hal_Qspi_UpdateDeviceSize(E_SpiSlave_t eSlvIdx, E_QSPI_DEVICE_SIZE eSize);
+uint32_t Hal_Qspi_WaitPollingState(void);
 
 #ifdef __cplusplus
 }

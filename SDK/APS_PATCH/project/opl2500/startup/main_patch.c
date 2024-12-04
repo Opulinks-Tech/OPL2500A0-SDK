@@ -13,6 +13,7 @@
 
 #include "sys_init.h"
 #include "hal_system.h"
+#include "hal_flash.h"
 #include "at_cmd_common.h"
 #include "at_cmd_tcpip.h"
 #include "at_cmd_wifi.h"
@@ -22,6 +23,7 @@
 #include "at_cmd_task.h"
 #include "freertos_cmsis.h"
 #include "hal_pin.h"
+#include "boot_sequence.h"
 
 #define BOARD_EVB                ( 1)
 // #define BOARD_EVB_EXT_3_PINS     ( 2) /* Not support in SDK */
@@ -44,7 +46,7 @@
     #error Not supported !!!
 #endif
 
-
+#define FLASH_CHIP_CFG_XTAL_FREQ    20000000  /* 20MHz */
 
 static void Main_HeapPatchInit(void);
 static void Main_AppInit_patch(void);
@@ -55,6 +57,10 @@ void __Patch_EntryPoint(void) __attribute__((section("ENTRY_POINT")));
 void __Patch_EntryPoint(void)
 {
     Sys_XipSetup(XIP_MODE_DISABLE, SPI_SLAVE_0, 0);
+    
+    #ifdef ENABLE_FLASH_WRITE_PROTECTION
+    Hal_WriteProtectControlSet(ENABLE);
+    #endif /* ENABLE_FLASH_WRITE_PROTECTION */
     
     /* Don't remove SysInit_EntryPoint */
     SysInit_EntryPoint();
@@ -131,6 +137,7 @@ static void Main_HeapPatchInit(void)
 *************************************************************************/
 static void Main_AppInit_patch(void)
 {
+    Boot_FixXtalFreqCfg(FLASH_CHIP_CFG_XTAL_FREQ);
     at_cmd_wifi_func_init();
     at_cmd_app_func_preinit();
     at_cmd_property_func_init();

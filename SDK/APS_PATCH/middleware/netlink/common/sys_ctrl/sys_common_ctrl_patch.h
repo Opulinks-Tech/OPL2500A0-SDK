@@ -20,6 +20,9 @@ extern "C" {
 #endif
 
 int sys_set_tca(uint8_t enable);
+int sys_set_msq_clk(uint8_t u8ClkIdx, uint8_t u8Div);
+int sys_set_dto(uint16_t u16para, uint16_t u16val);
+int sys_set_ra(uint8_t u8Index, int8_t s8val);
 
 void sys_common_ctrl_func_patch(void);
 

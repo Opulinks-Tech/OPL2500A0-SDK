@@ -20,7 +20,6 @@ APS_HEAP_START = 0x443000
 APS_RAM_END = 0x454000
 APS_XIP_SIZE = 0x80000
 
-
 ############# include LIB ############
 
 PATCH_LIB = $(ROOT)/APS/targets/opl2500/Output-GCC/opl2500_patch_aps.a
@@ -77,7 +76,7 @@ LFLAGS += -Wl,--defsym=LD_APS_HEAP_START=$(APS_HEAP_START)
 LFLAGS += -Wl,--defsym=LD_APS_RAM_END=$(APS_RAM_END)
 LFLAGS += -Wl,--defsym=LD_APS_XIP_SIZE=$(APS_XIP_SIZE)
 LFLAGS += -Wl,--gc-sections
-#LFLAGS += -Wl,--print-memory-usage
+LFLAGS += -Wl,--print-memory-usage
 LFLAGS += -Wl,--entry=__Patch_EntryPoint
 LFLAGS += -Wl,--start-group $(PATCH_LIB) $(SDK_LIB) $(MAIN_LIB)
 #LFLAGS += -Wl,--end-group

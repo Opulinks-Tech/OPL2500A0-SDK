@@ -167,6 +167,28 @@ uint32_t Hal_Spi_ResetFifo(E_SpiIdx_t eSpiIdx)
 
     return ret;
 }
+
+void Hal_Spi_IntHandler(E_SpiIdx_t eSpiIdx)
+{
+    if (eSpiIdx == SPI_IDX_1)
+    {
+        if (g_tHalSpi1CallBack)
+            g_tHalSpi1CallBack();
+    }
+    else if (eSpiIdx == SPI_IDX_2)
+    {
+        if (g_tHalSpi2CallBack)
+            g_tHalSpi2CallBack();
+    }
+    else if (eSpiIdx == SPI_IDX_3)
+    {
+        if (g_tHalSpi3CallBack)
+            g_tHalSpi3CallBack();
+    }
+    else
+        return;
+}
+
 /*
  *************************************************************************
  *                          Private Functions

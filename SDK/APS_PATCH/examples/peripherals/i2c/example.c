@@ -37,6 +37,7 @@ Head Block of The File
 #include "example.h"
 #include "sys_os_config.h"
 #include "hal_i2c.h"
+#include "sys_cfg.h"
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 #define EEPROM_SIZE     0x4000      // 128Kb
@@ -94,9 +95,7 @@ void Main_AppThread(void *argu)
     uint8_t ubaReadCmd[3];
 
     printf("I2C Running\n");
-
-    Hal_I2c_MasterInit(I2C_07BIT, I2C_SPEED_STANDARD);
-    Hal_I2c_TargetAddrSet( 0x57 );
+    //sys_cfg_clk_set((T_SysCfgClkIdx)SYS_CFG_CLK_DECI_080_MHZ);
 
     while (1)
     {
@@ -115,6 +114,7 @@ void Main_AppThread(void *argu)
         ubaReadCmd[0] = 0;
         Hal_I2c_MasterTrasmit_Ex(&ubaWriteCmd[0], 2, I2C_TX_CMD_WRITE, I2C_TX_RESTART_NO,   I2C_TX_STOP_BIT_NO);
         Hal_I2c_MasterTrasmit_Ex(&ubaReadCmd[0],  1, I2C_TX_CMD_READ,  I2C_TX_RESTART_NEED, I2C_TX_STOP_BIT_NEED);
+        Hal_I2c_MasterReceive_Ex(&ubaReadCmd[0]);
 
         // show the data
         printf("EEPROM Addr[0x%X], Write[%d], Read[%d]\n", uwAddr, ubaWriteCmd[2], ubaReadCmd[0]);

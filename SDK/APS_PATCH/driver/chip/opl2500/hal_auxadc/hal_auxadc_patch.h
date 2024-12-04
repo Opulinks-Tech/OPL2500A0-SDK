@@ -64,13 +64,16 @@ extern "C" {
 Declaration of data structure
 ******************************/
 // Sec 3: structure, union, enum, linked list
-
+typedef struct
+{
+    int16_t i16GpioOffset[ HAL_AUX_GPIO_NUM_MAX ];
+} T_AdcGpioOffset;
 
 /********************************************
 Declaration of Global Variables & Functions
 ********************************************/
 // Sec 4: declaration of global variable
-
+extern T_AdcGpioOffset stAdcGpioOffset;
 
 // Sec 5: declaration of global function prototype
 
@@ -89,6 +92,10 @@ uint32_t Hal_Aux_AdcCal_LoadOtp_patch( void );
 uint32_t Hal_Aux_AdcCal_LoadFlash_patch( void );
 uint32_t Hal_Aux_AdcCal_EraseFlash( void );
 uint32_t Hal_Aux_AdcCal_StoreFlash( void );
+
+uint8_t Hal_Aux_AdcGpioOffset_Load(void);
+uint8_t Hal_Aux_AdcGpioOffset_Store(void);
+uint8_t Hal_Aux_AdcGpioOffset_Set(uint8_t ubGpioIdx, int16_t i16MiniVolt);
 
 // 2-pt calibration method
 uint32_t Hal_Aux_AdcGpioInCal(uint8_t u8GpioIdx, uint16_t u16MiniVolt, uint8_t u8PtsIdx);

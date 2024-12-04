@@ -60,6 +60,9 @@ const T_RfCfg g_tMwFimDefaultRfConfig_patch =
     0xB0       // u8HighPwrStatus
 };
 
+// the default value of rf cfg
+const T_AdcGpioOffset g_tMwFimDefaultAdcOffset = { 0 };
+
 // the address buffer of Uart config
 extern uint32_t g_ulaMwFimAddrBufferUartConfig[MW_FIM_UART_CFG_NUM];
 
@@ -71,6 +74,9 @@ extern uint32_t g_ulaMwFimAddrBufferTracerExtTaskInfo[MW_FIM_TRACER_EXT_TASK_INF
 // the address buffer of rf config
 extern uint32_t g_ulaMwFimAddrBufferRfConfig[MW_FIM_RF_CFG_NUM];
 
+// the address buffer of adc offset
+uint32_t g_ulaMwFimAddrBufferAdcOffset[MW_FIM_ADC_OFFSET_NUM];
+
 // the information table of group 01
 const T_MwFimFileInfo g_taMwFimGroupTable01_patch[] =
 {
@@ -81,6 +87,8 @@ const T_MwFimFileInfo g_taMwFimGroupTable01_patch[] =
     {MW_FIM_IDX_GP01_TRACER_EXT_TASK_INFO, MW_FIM_TRACER_EXT_TASK_INFO_NUM, MW_FIM_TRACER_EXT_TASK_INFO_SIZE, NULL                                    , g_ulaMwFimAddrBufferTracerExtTaskInfo},
 
     {MW_FIM_IDX_GP01_RF_CFG              , MW_FIM_RF_CFG_NUM              , MW_FIM_RF_CFG_SIZE              , (uint8_t*)&g_tMwFimDefaultRfConfig_patch, g_ulaMwFimAddrBufferRfConfig},
+
+    {MW_FIM_IDX_GP01_ADC_OFFSET          , MW_FIM_ADC_OFFSET_NUM          , MW_FIM_ADC_OFFSET_SIZE          , (uint8_t*)&g_tMwFimDefaultAdcOffset     , g_ulaMwFimAddrBufferAdcOffset},
 
     // the end, don't modify and remove it
     {0xFFFFFFFF,            0x00,              0x00,               NULL,                            NULL}
@@ -106,5 +114,5 @@ C Functions
 void MwFim_Group01_patch( void )
 {
     MwFim_GroupInfoUpdate(0, 1, (T_MwFimFileInfo *)g_taMwFimGroupTable01_patch);
-    MwFim_GroupVersionUpdate(0, 1, MW_FIM_VER01+1);
+    MwFim_GroupVersionUpdate(0, 1, MW_FIM_VER01+2); // <-- Updated Ver. here !!
 }

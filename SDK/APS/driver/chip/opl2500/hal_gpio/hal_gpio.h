@@ -503,4 +503,5 @@ void Hal_Gpio_RestoreRunModePinmux_impl(void);
 void Hal_Gpio_SleepIoApply_impl(void);
 void Hal_Gpio_PreInit(uint32_t u32SleepIoAddr);
 
+#include "hal_gpio_patch.h"
 #endif  /* __HAL_GPIO_H__ */

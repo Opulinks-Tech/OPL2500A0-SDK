@@ -40,6 +40,7 @@ Head Block of The File
 #include "boot_sequence.h"
 #include "sys_init.h"
 #include "hal_system.h"
+#include "hal_flash.h"
 #include "mw_fim.h"
 #include "mw_fim_default_group01.h"
 #include "hal_pin.h"
@@ -68,6 +69,8 @@ Head Block of The File
 #else
     #error Not supported !!!
 #endif
+
+#define FLASH_CHIP_CFG_XTAL_FREQ    20000000  /* 20MHz */
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 
@@ -123,6 +126,10 @@ C Functions
 *************************************************************************/
 void __Patch_EntryPoint(void)
 {
+    #ifdef ENABLE_FLASH_WRITE_PROTECTION
+    Hal_WriteProtectControlSet(ENABLE);
+    #endif /* ENABLE_FLASH_WRITE_PROTECTION */
+    
     // don't remove this code
     SysInit_EntryPoint();
 
@@ -395,6 +402,7 @@ static void at_cmd_switch_uart1_dbguart_patch(void)
 *************************************************************************/
 static void Main_AppInit_patch(void)
 {
+    Boot_FixXtalFreqCfg(FLASH_CHIP_CFG_XTAL_FREQ);
     at_cmd_wifi_func_init();
     at_cmd_app_func_preinit();
     at_cmd_property_func_init();

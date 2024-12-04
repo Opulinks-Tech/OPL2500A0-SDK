@@ -24,7 +24,7 @@
 #include <string.h>
 #include "hal_uart.h"
 #include "hal_sys_rcc.h"
-
+#include "hal_tick.h"
 /*
  *************************************************************************
  *                          Definitions and Macros
@@ -44,6 +44,8 @@
 */
 void Hal_Uart_WakeupResume_patch(E_UartIdx_t eUartIdx);
 uint32_t Hal_Uart_BaudRateSet_patch(E_UartIdx_t eUartIdx, uint32_t u32Baud);
+uint32_t Hal_Uart_DataSendTimeOut_patch(E_UartIdx_t eUartIdx, uint32_t u32Data, uint32_t u32MilliSec);
+uint32_t Hal_Uart_DataSend_patch(E_UartIdx_t eUartIdx, uint32_t u32Data);
 /*
  *************************************************************************
  *                          Public Variables
@@ -80,10 +82,23 @@ void Hal_Uart_PatchInit(void)
 {
     Hal_Uart_WakeupResume = Hal_Uart_WakeupResume_patch;
     Hal_Uart_BaudRateSet = Hal_Uart_BaudRateSet_patch;
+    Hal_Uart_DataSendTimeOut = Hal_Uart_DataSendTimeOut_patch;
+    Hal_Uart_DataSend = Hal_Uart_DataSend_patch;
 }
 
 void Hal_Uart_SleepPrepare(void)
 {
+    S_UART_Reg_t *pUart = 0;
+    for(E_UartIdx_t eUartIdx = UART_IDX_0; eUartIdx<UART_IDX_MAX; eUartIdx++)
+    {
+        if( g_taHalUartRuntimeSetting[ eUartIdx ].u8Enable )
+        {
+            pUart = g_caUartRegs[ eUartIdx ];
+            // loop until UART(TX) is done
+            while(pUart->USR & UART_USR_BUSY){ __NOP(); };
+        }
+    }
+
     memset(g_u8Hal_WakeupResumeDone, 0, sizeof(g_u8Hal_WakeupResumeDone));
 }
 
@@ -209,3 +224,104 @@ setup:
     return RESULT_SUCCESS;
 }
 
+
+/*************************************************************************
+* FUNCTION:
+*  Hal_Uart_DataSendTimeOut
+*
+* DESCRIPTION:
+*   1. Sent a data
+*
+* CALLS
+*
+* PARAMETERS
+*   1. eUartIdx    : Index of UART. refert to E_UartIdx_t
+*   2. u32Data    : Value of data
+*   3. u32MilliSec: Time-Out value. Recommand not over 10 sec (Estimate by 200Mhz system clock)
+*
+* RETURNS
+*   0: setting complete
+*   1: error 
+* 
+* GLOBALS AFFECTED
+* 
+*************************************************************************/
+uint32_t Hal_Uart_DataSendTimeOut_patch(E_UartIdx_t eUartIdx, uint32_t u32Data, uint32_t u32MilliSec)
+{
+    S_UART_Reg_t *pUart = 0;
+    uint32_t u32TimeOutTick = 0;
+    uint32_t u32TimeOutStart = 0;
+    uint32_t u32TimeoutMsMax;
+
+    
+    if (eUartIdx >= UART_IDX_MAX)
+        return RESULT_FAIL;
+    
+    pUart = g_caUartRegs[eUartIdx];
+    
+    u32TimeoutMsMax = Hal_Tick_MilliSecMax();
+    if (u32MilliSec > u32TimeoutMsMax)
+        u32MilliSec = u32TimeoutMsMax;
+    u32TimeOutTick = u32MilliSec * Hal_Tick_PerMilliSec();
+
+    u32TimeOutStart = Hal_Tick_Diff(0);
+
+    while (1)
+    {
+        if (pUart->USR & UART_USR_TFNF)
+        {   /* Send when TX FIFO not full */
+            pUart->THR = u32Data;
+            break;
+        }
+        if (Hal_Tick_Diff(u32TimeOutStart) > u32TimeOutTick)
+            return RESULT_FAIL;
+    }
+
+    return RESULT_SUCCESS;
+}
+
+/*************************************************************************
+* FUNCTION:
+*  Hal_Uart_DataSend
+*
+* DESCRIPTION:
+*   1. Sent a data
+*
+* CALLS
+*
+* PARAMETERS
+*   1. eUartIdx: Index of UART. refert to E_UartIdx_t
+*   2. u32Data: Value of data
+*
+* RETURNS
+*   0: setting complete
+*   1: error 
+* 
+* GLOBALS AFFECTED
+* 
+*************************************************************************/
+uint32_t Hal_Uart_DataSend_patch(E_UartIdx_t eUartIdx, uint32_t u32Data)
+{
+    S_UART_Reg_t *pUart = 0;
+    uint32_t u32TimeOutCount = 0;
+  
+    if (eUartIdx >= UART_IDX_MAX)
+        return RESULT_FAIL;
+    
+    pUart = g_caUartRegs[eUartIdx];
+    
+    while (1)
+    {
+        if (pUart->USR & UART_USR_TFNF)
+        {   /* Send when TX FIFO not full */
+            pUart->THR = u32Data;
+            break;
+        }
+        if (u32TimeOutCount > UART_TIMEOUT_COUNT_MAX)
+            return RESULT_FAIL;
+        u32TimeOutCount++;
+    }
+    
+    return RESULT_SUCCESS;
+
+}
